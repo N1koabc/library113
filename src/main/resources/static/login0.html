@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - 桂电自修室预约系统</title>
+    <!-- 引入核心依赖 -->
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus"></script>
+    <script src="https://unpkg.com/@element-plus/icons-vue"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; margin: 0; overflow: hidden; }
+        .auth-container { height: 100vh; width: 100vw; display: flex; align-items: center; justify-content: center; background: #f0fdfa; position: relative; }
+        .blob { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.6; animation: float 10s infinite ease-in-out; z-index: 0; }
+        .blob-1 { width: 400px; height: 400px; background: #34d399; top: -100px; left: -100px; animation-delay: 0s; }
+        .blob-2 { width: 300px; height: 300px; background: #60a5fa; bottom: -50px; right: -50px; animation-delay: 2s; }
+        .blob-3 { width: 250px; height: 250px; background: #f472b6; bottom: 20%; left: 20%; animation-delay: 4s; opacity: 0.4; }
+        @keyframes float { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(30px, -30px); } }
+        .auth-card { width: 100%; max-width: 440px; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.9); border-radius: 24px; padding: 48px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1); z-index: 10; }
+        .el-input__wrapper { border-radius: 12px !important; padding: 12px !important; box-shadow: none !important; border: 1px solid #e2e8f0; background-color: #f8fafc; }
+        .el-input__wrapper.is-focus { border-color: #10b981; background-color: #fff; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1) !important; }
+    </style>
+</head>
+<body>
+    <div id="app" class="auth-container">
+        <div class="blob blob-1"></div><div class="blob blob-2"></div><div class="blob blob-3"></div>
+        <div class="auth-card">
+            <div class="text-center mb-10">
+                <div class="w-20 h-20 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-3xl flex items-center justify-center shadow-xl shadow-emerald-200/50 mx-auto mb-6 transform -rotate-3 hover:rotate-0 transition-all duration-500">
+                    <el-icon color="#fff" size="36"><School /></el-icon>
+                </div>
+                <h1 class="text-3xl font-black text-slate-800 tracking-tight">桂电自修室</h1>
+                <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mt-2">Guet Library Service</p>
+            </div>
+
+            <div v-if="view === 'login'" class="space-y-6">
+                <el-form @keyup.enter="handleLogin">
+                    <div class="mb-4">
+                        <label class="text-xs font-bold text-slate-500 uppercase ml-1 mb-1 block">学号 / ID</label>
+                        <el-input v-model="loginForm.username" placeholder="请输入学号/管理账号" size="large"><template #prefix><el-icon class="text-slate-400"><User /></el-icon></template></el-input>
+                    </div>
+                    <div class="mb-6">
+                        <label class="text-xs font-bold text-slate-500 uppercase ml-1 mb-1 block">密码 / Password</label>
+                        <el-input v-model="loginForm.password" type="password" placeholder="请输入密码" size="large" show-password><template #prefix><el-icon class="text-slate-400"><Lock /></el-icon></template></el-input>
+                    </div>
+                    <el-button type="primary" class="w-full !h-12 !text-base !font-bold !rounded-xl !bg-emerald-600 hover:!bg-emerald-700 !border-none shadow-lg shadow-emerald-200/50 transition-transform active:scale-95" @click="handleLogin" :loading="loading">立即登录</el-button>
+                </el-form>
+                <div class="text-center"><el-button type="primary" link class="!font-bold" @click="view = 'register'">没有账号？立即注册</el-button></div>
+            </div>
+
+            <div v-else class="space-y-6">
+                <el-form>
+                    <div class="mb-4">
+                        <label class="text-xs font-bold text-slate-500 uppercase ml-1 mb-1 block">真实姓名</label>
+                        <el-input v-model="registerForm.realName" placeholder="例如：陈国海" size="large"><template #prefix><el-icon class="text-slate-400"><Postcard /></el-icon></template></el-input>
+                    </div>
+                    <div class="mb-4">
+                        <label class="text-xs font-bold text-slate-500 uppercase ml-1 mb-1 block">学号</label>
+                        <el-input v-model="registerForm.username" placeholder="作为登录账号" size="large"><template #prefix><el-icon class="text-slate-400"><User /></el-icon></template></el-input>
+                    </div>
+                    <div class="mb-6">
+                        <label class="text-xs font-bold text-slate-500 uppercase ml-1 mb-1 block">设置密码</label>
+                        <el-input v-model="registerForm.password" type="password" placeholder="6位以上字符" size="large" show-password><template #prefix><el-icon class="text-slate-400"><Lock /></el-icon></template></el-input>
+                    </div>
+                    <el-button type="primary" class="w-full !h-12 !text-base !font-bold !rounded-xl !bg-emerald-600 hover:!bg-emerald-700 !border-none shadow-lg shadow-emerald-200/50 transition-transform active:scale-95" @click="handleRegister" :loading="loading">确认注册</el-button>
+                </el-form>
+                <div class="text-center"><el-button type="primary" link class="!font-bold" @click="view = 'login'">返回登录</el-button></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref } = Vue;
+        axios.defaults.baseURL = 'http://localhost:8080';
+        const app = createApp({
+            setup() {
+                const view = ref('login');
+                const loading = ref(false);
+                const loginForm = ref({ username: '', password: '' });
+                const registerForm = ref({ username: '', password: '', realName: '' });
+
+                const handleLogin = async () => {
+                    if (!loginForm.value.username || !loginForm.value.password) return ElementPlus.ElMessage.warning('请输入完整信息');
+                    loading.value = true;
+                    try {
+                        const res = await axios.post('/api/user/login', loginForm.value);
+                        localStorage.setItem('user', JSON.stringify(res.data));
+                        
+                        if (res.data.role === 'admin') {
+                            ElementPlus.ElMessage.success('管理员身份验证成功');
+                        } else {
+                            ElementPlus.ElMessage.success('登录成功');
+                        }
+                        // 统一跳转到 index.html
+                        setTimeout(() => window.location.href = 'index.html', 800);
+                    } catch (error) {
+                        ElementPlus.ElMessage.error(error.response?.data || '登录失败');
+                    } finally { loading.value = false; }
+                };
+
+                const handleRegister = async () => {
+                    if (!registerForm.value.username || !registerForm.value.password || !registerForm.value.realName) return ElementPlus.ElMessage.warning('请填写完整注册信息');
+                    loading.value = true;
+                    try {
+                        await axios.post('/api/user/register', registerForm.value);
+                        ElementPlus.ElMessage.success('注册成功！请登录');
+                        view.value = 'login';
+                        loginForm.value.username = registerForm.value.username;
+                    } catch (error) {
+                        ElementPlus.ElMessage.error(error.response?.data || '注册失败');
+                    } finally { loading.value = false; }
+                };
+
+                return { view, loading, loginForm, registerForm, handleLogin, handleRegister };
+            }
+        });
+        for (const [key, component] of Object.entries(ElementPlusIconsVue)) app.component(key, component);
+        app.use(ElementPlus);
+        app.mount('#app');
+    </script>
+</body>
+</html>

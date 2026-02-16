@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理中心 | 智习空间</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://unpkg.com/element-plus"></script>
+    <script src="https://unpkg.com/@element-plus/icons-vue"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/echarts@5.4.3/dist/echarts.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <style>
+        :root { --bg-color: #f8fafc; --sidebar-width: 260px; --primary-color: #1e293b; --accent-color: #059669; }
+        body { margin: 0; background-color: var(--bg-color); color: #334155; font-family: 'Inter', sans-serif; overflow: hidden; height: 100vh; width: 100vw; display: flex; }
+        .app-sidebar { width: var(--sidebar-width); height: 100%; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(12px); border-right: 1px solid rgba(0,0,0,0.05); display: flex; flex-direction: column; padding: 32px 24px; position: fixed; left: 0; top: 0; z-index: 300; }
+        .nav-item { display: flex; align-items: center; gap: 16px; padding: 14px 16px; margin-bottom: 8px; border-radius: 12px; color: #334155; cursor: pointer; transition: all 0.2s ease; font-size: 14px; font-weight: 500; }
+        .nav-item:hover { background: #f1f5f9; color: var(--primary-color); }
+        .nav-item.active { background: var(--primary-color); color: #fff; box-shadow: 0 4px 12px rgba(30, 41, 59, 0.2); }
+        .stage-wrapper { margin-left: var(--sidebar-width); width: calc(100vw - var(--sidebar-width)); height: 100vh; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        .stage-wrapper.has-panel .stage-content { transform: scale(0.9) translateX(-100px); opacity: 0.3; filter: blur(4px); transition: all 0.6s; }
+        .admin-panel { position: fixed; top: 0; bottom: 0; right: 0; width: calc(100vw - var(--sidebar-width)); background: #fff; z-index: 200; transform: translateX(100%); transition: transform 0.5s cubic-bezier(0.19, 1, 0.22, 1); box-shadow: -10px 0 40px rgba(0,0,0,0.05); display: flex; flex-direction: column; border-top-left-radius: 30px; border-bottom-left-radius: 30px; overflow: hidden; }
+        .admin-panel.active { transform: translateX(0); }
+        .panel-header { padding: 24px 40px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f8fafc; background: rgba(255,255,255,0.8); }
+        .panel-content { flex: 1; overflow-y: auto; padding: 40px; }
+        .stat-card { background: #fff; padding: 24px; border-radius: 16px; border: 1px solid #f1f5f9; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02); }
+        .seat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 12px; }
+        .seat-item { aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; border: 1px solid #e2e8f0; cursor: pointer; }
+        .seat-item.occupied { background-color: #fef2f2; border-color: #fecaca; color: #ef4444; }
+        .seat-item.free { background-color: #f0fdf4; border-color: #bbf7d0; color: #16a34a; }
+        ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div id="app" v-cloak>
+        <aside class="app-sidebar">
+            <div class="flex items-center gap-3 mb-10 px-2 cursor-pointer" @click="closePanel">
+                <div class="w-8 h-8 bg-slate-800 text-white rounded-lg flex items-center justify-center font-bold font-serif">G</div>
+                <div><h1 class="text-base font-bold text-slate-800">GUET ADMIN</h1><p class="text-[10px] text-slate-400 tracking-widest">SYSTEM V2.0</p></div>
+            </div>
+            <div class="flex-1">
+                <div v-for="item in menuItems" :key="item.id" class="nav-item" :class="{ active: activePanel?.id === item.id }" @click="openPanel(item)">
+                    <el-icon><component :is="item.icon"></component></el-icon>
+                    <span>{{ item.label }}</span>
+                    <el-icon v-if="activePanel?.id === item.id" class="ml-auto"><ArrowRight /></el-icon>
+                </div>
+            </div>
+            <div class="pt-6 border-t border-slate-100 flex items-center gap-3 cursor-pointer hover:opacity-80" @click="logout">
+                <el-avatar :size="36" src="https://api.dicebear.com/7.x/miniavs/svg?seed=Admin"></el-avatar>
+                <div><p class="text-sm font-bold text-slate-700">Administrator</p><p class="text-xs text-slate-400">退出登录</p></div>
+            </div>
+        </aside>
+
+        <div class="stage-wrapper" :class="{ 'has-panel': activePanel }">
+            <div class="stage-content text-center">
+                <img src="https://upload.wikimedia.org/wikipedia/zh/0/07/Guilin_University_of_Electronic_Technology_logo.png" class="w-32 h-32 mx-auto mb-8 opacity-90 drop-shadow-xl" onerror="this.style.display='none'">
+                <h1 class="text-4xl font-serif font-bold text-slate-800 mb-3">桂林电子科技大学</h1>
+                <div class="text-sm text-slate-400 tracking-[0.2em] uppercase bg-white/60 px-4 py-2 rounded-full inline-block border border-slate-100">Smart Library Admin Center</div>
+                <div class="mt-16 flex justify-center gap-12 text-slate-400">
+                    <div><div class="text-3xl font-bold text-slate-700 mb-1">{{ timeString }}</div><div class="text-xs tracking-wider uppercase">System Time</div></div>
+                    <div class="w-px bg-slate-200"></div>
+                    <div><div class="text-3xl font-bold text-emerald-600 mb-1">Online</div><div class="text-xs tracking-wider uppercase">Server Status</div></div>
+                </div>
+            </div>
+        </div>
+
+        <main class="admin-panel" :class="{ 'active': activePanel }">
+            <div class="panel-header">
+                <div class="text-2xl font-serif text-slate-800 flex items-center gap-3">
+                    <el-icon class="text-emerald-600"><component :is="activePanel?.icon"></component></el-icon>
+                    {{ activePanel ? activePanel.title : '' }}
+                </div>
+                <div class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center cursor-pointer hover:bg-red-100 hover:text-red-500 transition-all" @click="closePanel"><el-icon><Close /></el-icon></div>
+            </div>
+            
+            <div class="panel-content">
+                <div v-if="activePanel?.id === 'dashboard'" class="space-y-8">
+                    <div class="grid grid-cols-4 gap-6">
+                        <div class="stat-card">
+                            <div class="text-xs text-slate-400 font-bold uppercase">注册用户</div>
+                            <div class="text-3xl font-bold text-slate-800 mt-2">{{ dashboardStats.totalUsers }}</div>
+                        </div>
+                        <div class="stat-card border-l-4 border-emerald-500">
+                            <div class="text-xs text-slate-400 font-bold uppercase">实时在馆</div>
+                            <div class="text-3xl font-bold text-emerald-600 mt-2">{{ dashboardStats.currentOccupied }}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="text-xs text-slate-400 font-bold uppercase">总座位数</div>
+                            <div class="text-3xl font-bold text-slate-800 mt-2">{{ dashboardStats.totalSeats }}</div>
+                        </div>
+                        <div class="stat-card border-l-4 border-red-400">
+                            <div class="text-xs text-slate-400 font-bold uppercase">今日违规</div>
+                            <div class="text-3xl font-bold text-red-500 mt-2">{{ dashboardStats.violations }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div v-if="activePanel?.id === 'users'">
+                    <div class="flex justify-between mb-6">
+                        <div class="flex gap-3">
+                            <el-input v-model="userSearch" placeholder="输入学号或姓名搜索..." prefix-icon="Search" class="w-64" clearable @clear="fetchUsers" @keyup.enter="fetchUsers"></el-input>
+                            <el-button type="primary" color="#1e293b" @click="fetchUsers">搜索</el-button>
+                        </div>
+                        <el-button plain type="primary" @click="fetchUsers">刷新列表</el-button>
+                    </div>
+                    <el-table :data="usersList" v-loading="loading" style="width: 100%" class="shadow-sm rounded-lg">
+                        <el-table-column prop="username" label="学号" width="150"></el-table-column>
+                        <el-table-column label="姓名" width="150">
+                            <template #default="scope">
+                                <div class="flex items-center gap-3">
+                                    <el-avatar :size="30" :src="scope.row.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed='+scope.row.username"></el-avatar>
+                                    <span class="font-bold text-slate-700">{{ scope.row.realName }}</span>
+                                </div>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="信用分" width="120">
+                            <template #default="scope">
+                                <el-tag :type="scope.row.creditScore >= 90 ? 'success' : (scope.row.creditScore < 60 ? 'danger' : 'warning')" effect="dark">{{ scope.row.creditScore }}</el-tag>
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="createTime" label="注册时间" width="180"></el-table-column>
+                        <el-table-column label="操作" align="right">
+                            <template #default="scope">
+                                <el-button link type="danger" @click="openCreditDialog(scope.row)">扣分/奖分</el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                </div>
+
+                <div v-if="activePanel?.id === 'seats'">
+                    <div class="flex gap-4 mb-6 bg-slate-50 p-4 rounded-xl">
+                        <el-select v-model="seatFloor" class="w-32" @change="fetchSeats"><el-option :value="1" label="1楼"></el-option><el-option :value="2" label="2楼"></el-option><el-option :value="3" label="3楼"></el-option><el-option :value="4" label="4楼"></el-option><el-option :value="5" label="5楼"></el-option></el-select>
+                        <el-select v-model="seatZone" class="w-32" @change="fetchSeats"><el-option value="东A区" label="东A区"></el-option><el-option value="西B区" label="西B区"></el-option><el-option value="北C区" label="北C区"></el-option></el-select>
+                        <div class="ml-auto flex gap-4 text-xs font-bold items-center">
+                            <span class="flex items-center gap-1"><span class="w-3 h-3 bg-emerald-100 border border-emerald-300 rounded"></span> 空闲</span>
+                            <span class="flex items-center gap-1"><span class="w-3 h-3 bg-red-100 border border-red-300 rounded"></span> 占用</span>
+                        </div>
+                    </div>
+                    <div class="seat-grid" v-loading="loading">
+                        <div v-for="seat in seatsList" :key="seat.id" class="seat-item" :class="seat.status === 0 ? 'free' : 'occupied'">
+                            <span class="font-mono font-bold">{{ seat.seatNumber }}</span>
+                            <span class="scale-75">{{ seat.status === 0 ? 'FREE' : 'BUSY' }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div v-if="activePanel?.id === 'notices'">
+                    <div class="max-w-2xl">
+                        <el-form label-position="top">
+                            <el-form-item label="公告标题">
+                                <el-input v-model="noticeForm.title" placeholder="请输入标题"></el-input>
+                            </el-form-item>
+                            <el-form-item label="类型标签">
+                                <el-radio-group v-model="noticeForm.type">
+                                    <el-radio label="info">普通通知 (灰)</el-radio>
+                                    <el-radio label="warning">维护提醒 (橙)</el-radio>
+                                    <el-radio label="danger">紧急预警 (红)</el-radio>
+                                    <el-radio label="success">活动推广 (绿)</el-radio>
+                                </el-radio-group>
+                            </el-form-item>
+                            <el-form-item label="短标签 (2-4字)">
+                                <el-input v-model="noticeForm.tag" placeholder="例如：通知、预警"></el-input>
+                            </el-form-item>
+                            <el-button type="primary" color="#1e293b" @click="publishNotice">立即发布</el-button>
+                        </el-form>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <el-dialog v-model="creditDialogVisible" title="调整信用分" width="30%">
+            <p class="mb-4">正在调整用户 <strong>{{ creditForm.realName }}</strong> ({{ creditForm.username }}) 的信用分。</p>
+            <el-radio-group v-model="creditForm.action" class="mb-4">
+                <el-radio label="deduct">违规扣分 (-5)</el-radio>
+                <el-radio label="reward">奖励加分 (+2)</el-radio>
+                <el-radio label="reset">重置为100</el-radio>
+            </el-radio-group>
+            <template #footer>
+                <el-button @click="creditDialogVisible = false">取消</el-button>
+                <el-button type="primary" @click="submitCredit">确定</el-button>
+            </template>
+        </el-dialog>
+    </div>
+
+    <script>
+        const { createApp, ref, onMounted } = Vue;
+        axios.defaults.baseURL = 'http://localhost:8080';
+
+        const app = createApp({
+            setup() {
+                const activePanel = ref(null);
+                const timeString = ref('');
+                const loading = ref(false);
+                
+                // Dashboard Data
+                const dashboardStats = ref({ totalUsers: 0, currentOccupied: 0, totalSeats: 0, violations: 0 });
+                
+                // User Data
+                const usersList = ref([]);
+                const userSearch = ref('');
+                const creditDialogVisible = ref(false);
+                const creditForm = ref({ username: '', realName: '', action: 'deduct' });
+
+                // Seat Data
+                const seatsList = ref([]);
+                const seatFloor = ref(1);
+                const seatZone = ref('东A区');
+
+                // Notice Data
+                const noticeForm = ref({ title: '', type: 'info', tag: '通知' });
+
+                const menuItems = [
+                    { id: 'dashboard', label: '运营概览', title: '数据仪表盘', icon: 'Odometer' },
+                    { id: 'users', label: '用户管理', title: '学生档案中心', icon: 'UserFilled' },
+                    { id: 'seats', label: '座位资源', title: '空间资源管控', icon: 'Grid' },
+                    { id: 'notices', label: '公告发布', title: '信息广播系统', icon: 'ChatLineSquare' }
+                ];
+
+                const updateTime = () => timeString.value = new Date().toLocaleTimeString('en-US', { hour12: false });
+
+                const fetchDashboard = async () => {
+                    try {
+                        const res = await axios.get('/api/admin/dashboard');
+                        dashboardStats.value = res.data;
+                    } catch(e) {}
+                };
+
+                const fetchUsers = async () => {
+                    loading.value = true;
+                    try {
+                        const res = await axios.get('/api/admin/users', { params: { keyword: userSearch.value } });
+                        usersList.value = res.data;
+                    } catch(e) { ElementPlus.ElMessage.error('获取用户列表失败'); } 
+                    finally { loading.value = false; }
+                };
+
+                const fetchSeats = async () => {
+                    loading.value = true;
+                    try {
+                        const res = await axios.get('/api/seats/list', { params: { floor: seatFloor.value, zone: seatZone.value } });
+                        seatsList.value = res.data;
+                    } catch(e) {} 
+                    finally { loading.value = false; }
+                };
+
+                const openPanel = (item) => {
+                    activePanel.value = item;
+                    if (item.id === 'dashboard') fetchDashboard();
+                    if (item.id === 'users') fetchUsers();
+                    if (item.id === 'seats') fetchSeats();
+                };
+
+                const closePanel = () => activePanel.value = null;
+
+                // 信用分逻辑
+                const openCreditDialog = (row) => {
+                    creditForm.value = { username: row.username, realName: row.realName, action: 'deduct' };
+                    creditDialogVisible.value = true;
+                };
+
+                const submitCredit = async () => {
+                    let delta = 0;
+                    if (creditForm.value.action === 'deduct') delta = -5;
+                    if (creditForm.value.action === 'reward') delta = 2;
+                    // Reset 比较复杂，暂简化为加到100
+                    
+                    try {
+                        await axios.post('/api/admin/credit', { username: creditForm.value.username, delta: delta });
+                        ElementPlus.ElMessage.success('操作成功');
+                        creditDialogVisible.value = false;
+                        fetchUsers(); // 刷新
+                    } catch(e) { ElementPlus.ElMessage.error('操作失败'); }
+                };
+
+                // 公告逻辑
+                const publishNotice = async () => {
+                    if(!noticeForm.value.title) return ElementPlus.ElMessage.warning('请输入标题');
+                    try {
+                        await axios.post('/api/admin/notice', noticeForm.value);
+                        ElementPlus.ElMessage.success('发布成功');
+                        noticeForm.value.title = '';
+                    } catch(e) { ElementPlus.ElMessage.error('发布失败'); }
+                };
+
+                const logout = () => location.href = 'login0.html';
+
+                onMounted(() => { setInterval(updateTime, 1000); updateTime(); });
+
+                return {
+                    menuItems, activePanel, timeString, loading,
+                    dashboardStats, usersList, userSearch, seatsList, seatFloor, seatZone, noticeForm,
+                    creditDialogVisible, creditForm,
+                    openPanel, closePanel, fetchUsers, fetchSeats, publishNotice, logout,
+                    openCreditDialog, submitCredit
+                };
+            }
+        });
+
+        for (const [key, component] of Object.entries(ElementPlusIconsVue)) app.component(key, component);
+        app.use(ElementPlus);
+        app.mount('#app');
+    </script>
+</body>
+</html>

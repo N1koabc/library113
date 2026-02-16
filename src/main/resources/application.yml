@@ -1,0 +1,65 @@
+#server:
+#  port: 8080
+#
+#spring:
+#  # 配置文件上传限制 (修复上传报错的关键)
+#  servlet:
+#    multipart:
+#      max-file-size: 10MB      # 单个文件最大 10MB
+#      max-request-size: 10MB   # 单次请求总大小最大 10MB
+#
+#  datasource:
+#    driver-class-name: com.mysql.cj.jdbc.Driver
+#    # 确保数据库名 library_db 正确
+#    url: jdbc:mysql://localhost:3306/library_db?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=GMT%2B8
+#    username: root
+#    password: qwe#123
+#
+#  jackson:
+#    date-format: yyyy-MM-dd HH:mm:ss
+#    time-zone: GMT+8
+#
+#mybatis-plus:
+#  configuration:
+#    # 打印 SQL 方便调试
+#    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+#    # 驼峰命名转换
+#    map-underscore-to-camel-case: true
+#  global-config:
+#    db-config:
+#      id-type: auto
+server:
+  port: 8080
+  # 【新增】强制 HTTP 响应使用 UTF-8 编码，修复中文乱码
+  servlet:
+    encoding:
+      charset: UTF-8
+      force: true
+      enabled: true
+
+spring:
+  # 配置文件上传限制
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # 确保数据库名 library_db 正确
+    url: jdbc:mysql://localhost:3306/library_db?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=GMT%2B8
+    username: root
+    # 如果你的密码不是这个，记得改回来
+    password: qwe#123
+
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: auto
