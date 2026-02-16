@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @TableName("comment")
@@ -17,9 +18,18 @@ public class Comment {
     private String content;
     private LocalDateTime createTime;
 
-    // 辅助字段：用于给前端显示用户头像和名字
+    // 【新增】互动与结构字段
+    private Integer likeCount = 0;
+    private Integer dislikeCount = 0;
+    private Long parentId; // 如果是回复，则存父评论ID
+
+    // --- 辅助字段 (不存数据库) ---
     @TableField(exist = false)
     private String userName;
     @TableField(exist = false)
     private String userAvatar;
+
+    // 用于存放子评论（回复）
+    @TableField(exist = false)
+    private List<Comment> replies;
 }
