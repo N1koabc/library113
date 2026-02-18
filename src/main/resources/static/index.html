@@ -206,15 +206,15 @@
                                 <el-form label-position="top">
                                     <div class="flex gap-2">
                                         <el-select v-model="batchForm.floor" placeholder="楼层" clearable size="small" class="flex-1"><el-option v-for="f in 5" :key="f" :label="f+'楼'" :value="f"></el-option></el-select>
-                                        <el-select v-model="batchForm.zone" placeholder="区域" clearable size="small" class="flex-1"><el-option label="东A区" value="东A区"></el-option><el-option label="西B区" value="西B区"></el-option></el-select>
+                                        <el-select v-model="batchForm.zone" placeholder="区域" clearable size="small" class="flex-1"><el-option label="东A区" value="东A区"></el-option><el-option label="西B区" value="西B区"></el-option><el-option label="北C区" value="北C区"></el-option></el-select>
                                     </div>
                                     <el-button type="danger" plain class="w-full mt-3" @click="handleBatchDelete">删除选中区域数据</el-button>
                                 </el-form>
                             </el-card>
 
-                            <el-card class="clean-card" shadow="never"><template #header>状态汇总</template>
-                                <div class="flex justify-between items-center bg-slate-50 p-4 rounded-xl"><span>闭馆模式</span><el-switch v-model="isLibraryClosed" active-color="#ef4444" @change="handleLibraryStatusChange"></el-switch></div>
-                                <p class="text-[10px] text-slate-400 mt-4">提示：鼠标悬停在下方具体座位上，点击红色按钮可删除单个座位。</p>
+                            <el-card class="clean-card" shadow="never"><template #header>闭馆模式</template>
+                                <div class="flex justify-between items-center bg-slate-50 p-4 rounded-xl"><span>图书馆闭馆</span><el-switch v-model="isLibraryClosed" active-color="#ef4444" @change="handleLibraryStatusChange"></el-switch></div>
+                                <p class="text-[10px] text-slate-400 mt-4">提示：鼠标悬停下方座位列表点击红色叉号可删除单个座位。</p>
                             </el-card>
                         </div>
 
@@ -268,32 +268,57 @@
                 <div class="border-t border-slate-100 mt-12 pt-8">
                     <div class="flex items-center justify-center gap-8 mb-10">
                          <el-button round :type="userAction === 'like' ? 'primary' : 'default'" @click="handleNewsAction('like')" size="large">
-                            <el-icon class="mr-2"><ThumbUp /></el-icon> 点赞 {{ currentNews.likeCount || 0 }}
+                            <el-icon class="mr-2"><component :is="'ThumbUp'"></component></el-icon> 点赞 {{ currentNews.likeCount || 0 }}
                          </el-button>
                          <el-button round :type="userAction === 'dislike' ? 'danger' : 'default'" @click="handleNewsAction('dislike')" size="large">
-                            <el-icon class="mr-2"><ThumbDown /></el-icon> 踩 {{ currentNews.dislikeCount || 0 }}
+                            <el-icon class="mr-2"><component :is="'ThumbDown'"></component></el-icon> 踩 {{ currentNews.dislikeCount || 0 }}
                          </el-button>
                     </div>
 
                     <div class="bg-slate-50 p-6 rounded-2xl mb-8">
-                        <div class="mb-4 font-bold text-slate-700 flex items-center gap-2"><el-icon><ChatDotRound /></el-icon> 评论区</div>
+                        <div class="mb-4 font-bold text-slate-700 flex items-center gap-2"><el-icon><component :is="'ChatDotRound'"></component></el-icon> 评论区</div>
                         <div class="flex flex-col gap-3">
-                            <el-input v-model="newComment" placeholder="友善评论，理性交流..." type="textarea" :rows="3" resize="none" class="bg-white"></el-input>
-                            <div class="text-right">
-                                <el-button type="primary" class="!rounded-xl px-6" @click="submitComment" :loading="commentSubmitting">发布评论</el-button>
+                            <el-input v-model="newComment" :placeholder="replyToId ? '回复 ' + replyToName + '：' : '友善评论，理性交流...'" type="textarea" :rows="3" resize="none" class="bg-white"></el-input>
+                            <div class="flex justify-between items-center">
+                                <el-button v-if="replyToId" link type="info" @click="cancelReply">取消回复</el-button>
+                                <el-button type="primary" class="!rounded-xl px-6 ml-auto" @click="submitComment" :loading="commentSubmitting">发布评论</el-button>
                             </div>
                         </div>
                     </div>
 
                     <div class="space-y-6">
-                         <div v-for="c in comments" :key="c.id" class="flex gap-4 border-b border-slate-50 pb-6 last:border-none">
-                             <el-avatar :src="c.userAvatar" :size="40" class="flex-shrink-0"></el-avatar>
-                             <div class="flex-grow">
-                                 <div class="flex justify-between items-center mb-1">
-                                     <span class="font-bold text-sm text-slate-800">{{ c.userName }}</span>
-                                     <span class="text-xs text-slate-400 font-mono">{{ c.createTime?.replace('T', ' ').substring(0,16) }}</span>
+                         <div v-for="c in comments" :key="c.id" class="border-b border-slate-50 pb-6 last:border-none">
+                             <div class="flex gap-4">
+                                 <el-avatar :src="c.userAvatar" :size="40" class="flex-shrink-0"></el-avatar>
+                                 <div class="flex-grow">
+                                     <div class="flex justify-between items-center mb-1">
+                                         <span class="font-bold text-sm text-slate-800">{{ c.userName }}</span>
+                                         <span class="text-xs text-slate-400 font-mono">{{ c.createTime?.replace('T', ' ').substring(0,16) }}</span>
+                                     </div>
+                                     <p class="text-sm text-slate-600 leading-relaxed mb-2">{{ c.content }}</p>
+                                     <div class="flex items-center gap-4 text-xs text-slate-400">
+                                         <span class="cursor-pointer hover:text-emerald-600 flex items-center gap-1" @click="handleCommentAction(c, 'like')"><el-icon><component :is="'ThumbUp'"></component></el-icon> {{ c.likeCount }}</span>
+                                         <span class="cursor-pointer hover:text-red-500 flex items-center gap-1" @click="handleCommentAction(c, 'dislike')"><el-icon><component :is="'ThumbDown'"></component></el-icon> {{ c.dislikeCount }}</span>
+                                         <span class="cursor-pointer hover:text-blue-600 font-bold" @click="setReply(c)">回复</span>
+                                     </div>
                                  </div>
-                                 <p class="text-sm text-slate-600 leading-relaxed">{{ c.content }}</p>
+                             </div>
+
+                             <div v-if="c.replies && c.replies.length > 0" class="ml-14 mt-4 bg-slate-50 p-4 rounded-xl space-y-4">
+                                 <div v-for="r in c.replies" :key="r.id" class="flex gap-3">
+                                     <el-avatar :src="r.userAvatar" :size="24" class="flex-shrink-0"></el-avatar>
+                                     <div class="flex-grow">
+                                         <div class="flex justify-between items-center mb-1">
+                                             <span class="font-bold text-xs text-slate-700">{{ r.userName }}</span>
+                                             <span class="text-[10px] text-slate-400 font-mono">{{ r.createTime?.replace('T', ' ').substring(0,16) }}</span>
+                                         </div>
+                                         <p class="text-xs text-slate-600 leading-relaxed mb-1">{{ r.content }}</p>
+                                         <div class="flex items-center gap-4 text-[10px] text-slate-400">
+                                            <span class="cursor-pointer hover:text-emerald-600 flex items-center gap-1" @click="handleCommentAction(r, 'like')"><el-icon><component :is="'ThumbUp'"></component></el-icon> {{ r.likeCount }}</span>
+                                            <span class="cursor-pointer hover:text-red-500 flex items-center gap-1" @click="handleCommentAction(r, 'dislike')"><el-icon><component :is="'ThumbDown'"></component></el-icon> {{ r.dislikeCount }}</span>
+                                         </div>
+                                     </div>
+                                 </div>
                              </div>
                          </div>
                          <div v-if="comments.length === 0" class="text-center py-8 text-slate-400 text-sm">暂无评论，快来抢沙发~</div>
@@ -332,7 +357,9 @@
                 const comments = ref([]);
                 const newComment = ref('');
                 const commentSubmitting = ref(false);
-                const userAction = ref(null);
+                const userAction = ref(null); 
+                const replyToId = ref(null);   
+                const replyToName = ref('');   
 
                 // 3. 预约状态
                 const myReservation = ref(null); 
@@ -382,125 +409,7 @@
                 const storedUser = localStorage.getItem('user');
                 if (storedUser) { try { user.value = JSON.parse(storedUser); } catch(e) {} }
 
-                // --- 核心业务函数 ---
-
-                const fetchComments = async (newsId) => {
-                    try {
-                        const res = await axios.get('/api/news/comments', { params: { newsId } });
-                        comments.value = res.data;
-                    } catch(e) {}
-                };
-
-                const viewNews = (news) => { 
-                    currentNews.value = news; 
-                    newsDrawerVisible.value = true;
-                    // 重置
-                    comments.value = [];
-                    newComment.value = '';
-                    userAction.value = null; 
-                    fetchComments(news.id);
-                };
-
-                const handleNewsAction = async (type) => {
-                    if (!user.value.id) return ElementPlus.ElMessage.warning('请先登录');
-                    if (userAction.value === type) return; 
-                    try {
-                        await axios.post('/api/news/action', { newsId: currentNews.value.id, type: type });
-                        if(type === 'like') currentNews.value.likeCount = (currentNews.value.likeCount || 0) + 1;
-                        if(type === 'dislike') currentNews.value.dislikeCount = (currentNews.value.dislikeCount || 0) + 1;
-                        userAction.value = type;
-                        ElementPlus.ElMessage.success('操作成功');
-                    } catch(e) {}
-                };
-
-                const submitComment = async () => {
-                    if (!user.value.id) return ElementPlus.ElMessage.warning('请先登录');
-                    if (!newComment.value.trim()) return ElementPlus.ElMessage.warning('评论内容不能为空');
-                    commentSubmitting.value = true;
-                    try {
-                        await axios.post('/api/news/comment', { newsId: currentNews.value.id, content: newComment.value });
-                        ElementPlus.ElMessage.success('评论发布成功');
-                        newComment.value = '';
-                        fetchComments(currentNews.value.id);
-                    } catch(e) {
-                        ElementPlus.ElMessage.error('评论失败');
-                    } finally {
-                        commentSubmitting.value = false;
-                    }
-                };
-
-                const fetchTrendData = async () => {
-                    try {
-                        const res = await axios.get('/api/admin/trend', { params: { type: trendType.value } });
-                        const data = res.data;
-                        nextTick(() => {
-                            const dom = document.getElementById('adminTrendChart');
-                            if (!dom) return;
-                            let instance = echarts.getInstanceByDom(dom);
-                            if (!instance) { instance = echarts.init(dom); adminChartInstance = instance; }
-                            instance.setOption({
-                                tooltip: { trigger: 'axis' },
-                                legend: { data: ['总预约', '违约'], bottom: 0 },
-                                grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
-                                xAxis: { type: 'category', boundaryGap: false, data: data.dates },
-                                yAxis: { type: 'value' },
-                                series: [
-                                    { name: '总预约', type: 'line', smooth: true, symbol: 'none', lineStyle: { width: 3, color: '#059669' }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(5, 150, 105, 0.3)' }, { offset: 1, color: 'rgba(5, 150, 105, 0.01)' }]) }, data: data.orders },
-                                    { name: '违约', type: 'line', smooth: true, symbol: 'none', lineStyle: { width: 2, type: 'dashed', color: '#ef4444' }, data: data.violations }
-                                ]
-                            });
-                            instance.resize();
-                        });
-                    } catch (e) { console.error("加载趋势图失败", e); }
-                };
-
-                const initAdminChart = () => { nextTick(() => { fetchTrendData(); }); };
-                let charts = [];
-
-                const initCharts = async () => { 
-                    try { const res = await axios.get('/api/notices/latest'); campusNews.value = res.data.map(i=>({...i, time: i.createTime?.substring(5,10)})); } catch(e){} 
-                    try { const res = await axios.get('/api/seats/logs'); liveLogs.value = res.data || []; } catch(e){} 
-                    
-                    nextTick(async () => {
-                        const hDom = document.getElementById('heatmapChart'); 
-                        if(hDom) { 
-                            const c = echarts.init(hDom); 
-                            try { 
-                                const r = await axios.get('/api/seats/stats', { params: { _t: new Date().getTime() } }); 
-                                const graphic = isLibraryClosed.value ? [{ type: 'text', left: 'center', top: 'middle', style: { text: '当前馆内维护/闭馆中', fill: 'rgba(239, 68, 68, 0.2)', fontSize: 40, fontWeight: 'bold' } }] : []; 
-                                c.setOption({ tooltip: {position:'top'}, grid: {top:'10%', bottom:'20%'}, xAxis:{type:'category', data:['8点','10点','12点','14点','16点','18点','20点']}, yAxis:{type:'category', data:['1F','2F','3F','4F','5F']}, visualMap:{min:0, max:5, inRange:{color:['#f0fdf4','#16a34a']}, orient:'horizontal', left:'center', bottom:0}, graphic: graphic, series:[{type:'heatmap', data:r.data, label:{show:true}}] }); 
-                                charts.push(c); 
-                            } catch(e){} 
-                        } 
-                        const cDom = document.getElementById('compareChart'); 
-                        if(cDom) { 
-                            const c = echarts.init(cDom); 
-                            try { 
-                                const r = await axios.get('/api/seats/saturation', { params: { _t: new Date().getTime() } }); 
-                                c.setOption({ tooltip:{trigger:'axis'}, grid:{top:10, bottom:20, left:40, right:20}, xAxis:{type:'value', max:100}, yAxis:{type:'category', data:['1F','2F','3F','4F','5F']}, series:[{type:'bar', data:r.data, itemStyle:{color:'#10b981', borderRadius:[0,5,5,0]}}] }); 
-                                charts.push(c); 
-                            } catch(e){} 
-                        }
-                    });
-                };
-
-                const updateTimeConstraints = () => {
-                    const now = new Date();
-                    const h = String(now.getHours()).padStart(2, '0');
-                    const m = String(now.getMinutes()).padStart(2, '0');
-                    limitTime.value = `${h}:${m}`;
-                    let nextH = now.getHours();
-                    let nextM = now.getMinutes() >= 30 ? 0 : 30;
-                    if (now.getMinutes() >= 30) nextH += 1;
-                    const nextTimeStr = `${String(nextH).padStart(2,'0')}:${String(nextM).padStart(2,'0')}`;
-                    if (bookingForm.value.startTime === '08:00') {
-                        bookingForm.value.startTime = nextTimeStr;
-                        let endH = nextH + 2;
-                        if (endH > 22) endH = 22;
-                        bookingForm.value.endTime = `${String(endH).padStart(2,'0')}:${String(nextM).padStart(2,'0')}`;
-                    }
-                };
-
+                // --- 业务函数 ---
                 const fetchMessages = async () => { if (!user.value.id) return; try { const res = await axios.get('/api/messages/mine', { params: { userId: user.value.id } }); messages.value = res.data; const countRes = await axios.get('/api/messages/unread', { params: { userId: user.value.id } }); unreadCount.value = countRes.data; } catch(e) {} };
                 const readMessage = async (msg) => { if (msg.isRead) return; try { await axios.post(`/api/messages/read/${msg.id}`); msg.isRead = true; if (unreadCount.value > 0) unreadCount.value--; } catch(e) {} };
                 const openEditDialog = () => { editForm.value = { ...user.value }; editDialogVisible.value = true; };
@@ -557,6 +466,161 @@
                 const handleBatchMaintenance = async (status) => { try { await ElementPlus.ElMessageBox.confirm(status ? '确定维护？' : '确定开放？'); await axios.post('/api/admin/seat/batch-maintenance', { floor: batchForm.value.floor, zone: batchForm.value.zone, maintenance: status }); ElementPlus.ElMessage.success('批量操作完成'); fetchAdminSeats(); } catch (e) {} };
                 const handleBatchDelete = async () => { try { await ElementPlus.ElMessageBox.confirm('危险操作：这将永久删除指定范围内的所有座位，且不可恢复！确定要继续吗？', '严重警告', { type: 'error', confirmButtonText: '确认删除', cancelButtonText: '取消' }); await axios.post('/api/admin/seat/batch-delete', { floor: batchForm.value.floor, zone: batchForm.value.zone }); ElementPlus.ElMessage.success('区域数据已清空'); fetchAdminSeats(); } catch (e) { if(e !== 'cancel') ElementPlus.ElMessage.error(e.response?.data || '操作取消或失败'); } };
 
+                const fetchNewsData = async () => { try { const res = await axios.get('/api/news/latest'); newsData.value = res.data; } catch(e){} };
+                const submitNews = async () => { if(!newsForm.value.title) return ElementPlus.ElMessage.warning('请输入标题'); try { await axios.post('/api/news/add', newsForm.value); ElementPlus.ElMessage.success('新闻发布成功'); newsForm.value = { title: '', summary: '', content: '', coverImage: '' }; fetchNewsData(); } catch(e) { ElementPlus.ElMessage.error('发布失败'); } };
+                const handleDeleteNews = async (news) => { try { await ElementPlus.ElMessageBox.confirm('确定删除该条新闻？', '提示', { type: 'warning' }); await axios.post('/api/news/delete', news); ElementPlus.ElMessage.success('已删除'); fetchNewsData(); } catch(e){} };
+                const handleNewsImageSuccess = (res) => { newsForm.value.coverImage = res; };
+                const handleContentImgSuccess = (res) => { const imgTag = `<br><img src="${res}" style="max-width:100%; border-radius: 8px; margin: 10px 0;"><br>`; newsForm.value.content = (newsForm.value.content || '') + imgTag; };
+                
+                // 【互动功能：点赞/踩 + 评论】
+                const fetchComments = async (newsId) => {
+                    try {
+                        const res = await axios.get('/api/news/comments', { params: { newsId } });
+                        comments.value = res.data;
+                    } catch(e) {}
+                };
+
+                const viewNews = (news) => { 
+                    currentNews.value = news; 
+                    newsDrawerVisible.value = true;
+                    // 重置
+                    comments.value = [];
+                    newComment.value = '';
+                    userAction.value = null;
+                    replyToId.value = null; // 重置回复对象
+                    fetchComments(news.id);
+                };
+
+                const handleNewsAction = async (type) => {
+                    if (!user.value.id) return ElementPlus.ElMessage.warning('请先登录');
+                    if (userAction.value === type) return; 
+                    try {
+                        await axios.post('/api/news/action', { newsId: currentNews.value.id, type: type });
+                        if(type === 'like') currentNews.value.likeCount = (currentNews.value.likeCount || 0) + 1;
+                        if(type === 'dislike') currentNews.value.dislikeCount = (currentNews.value.dislikeCount || 0) + 1;
+                        userAction.value = type;
+                        ElementPlus.ElMessage.success('操作成功');
+                    } catch(e) {}
+                };
+                
+                // 回复某个评论
+                const setReply = (comment) => {
+                    replyToId.value = comment.id;
+                    replyToName.value = comment.userName;
+                    // 滚动到输入框
+                    document.querySelector('.el-textarea__inner')?.focus();
+                };
+                
+                const cancelReply = () => {
+                    replyToId.value = null;
+                    replyToName.value = '';
+                };
+
+                const submitComment = async () => {
+                    if (!user.value.id) return ElementPlus.ElMessage.warning('请先登录');
+                    if (!newComment.value.trim()) return ElementPlus.ElMessage.warning('评论内容不能为空');
+                    commentSubmitting.value = true;
+                    try {
+                        // 包含 parentId 如果是回复
+                        await axios.post('/api/news/comment', { 
+                            newsId: currentNews.value.id, 
+                            content: newComment.value,
+                            parentId: replyToId.value
+                        });
+                        ElementPlus.ElMessage.success('评论发布成功');
+                        newComment.value = '';
+                        cancelReply();
+                        fetchComments(currentNews.value.id);
+                    } catch(e) {
+                        ElementPlus.ElMessage.error('评论失败');
+                    } finally {
+                        commentSubmitting.value = false;
+                    }
+                };
+                
+                // 评论点赞
+                const handleCommentAction = async (comment, type) => {
+                    if (!user.value.id) return ElementPlus.ElMessage.warning('请先登录');
+                    try {
+                        await axios.post('/api/news/comment/action', { commentId: comment.id, type: type });
+                        if(type === 'like') comment.likeCount++;
+                        if(type === 'dislike') comment.dislikeCount++;
+                        ElementPlus.ElMessage.success('已评价');
+                    } catch(e){}
+                };
+
+                const fetchTrendData = async () => {
+                    try {
+                        const res = await axios.get('/api/admin/trend', { params: { type: trendType.value } });
+                        const data = res.data;
+                        nextTick(() => {
+                            const dom = document.getElementById('adminTrendChart');
+                            if (!dom) return;
+                            let instance = echarts.getInstanceByDom(dom);
+                            if (!instance) { instance = echarts.init(dom); adminChartInstance = instance; }
+                            instance.setOption({
+                                tooltip: { trigger: 'axis' },
+                                legend: { data: ['总预约', '违约'], bottom: 0 },
+                                grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
+                                xAxis: { type: 'category', boundaryGap: false, data: data.dates },
+                                yAxis: { type: 'value' },
+                                series: [
+                                    { name: '总预约', type: 'line', smooth: true, symbol: 'none', lineStyle: { width: 3, color: '#059669' }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(5, 150, 105, 0.3)' }, { offset: 1, color: 'rgba(5, 150, 105, 0.01)' }]) }, data: data.orders },
+                                    { name: '违约', type: 'line', smooth: true, symbol: 'none', lineStyle: { width: 2, type: 'dashed', color: '#ef4444' }, data: data.violations }
+                                ]
+                            });
+                            instance.resize();
+                        });
+                    } catch (e) { console.error("加载趋势图失败", e); }
+                };
+
+                const initAdminChart = () => { nextTick(() => { fetchTrendData(); }); };
+
+                let charts = [];
+                const initCharts = async () => { 
+                    try { const res = await axios.get('/api/notices/latest'); campusNews.value = res.data.map(i=>({...i, time: i.createTime?.substring(5,10)})); } catch(e){} 
+                    try { const res = await axios.get('/api/seats/logs'); liveLogs.value = res.data || []; } catch(e){} 
+                    
+                    nextTick(async () => {
+                        const hDom = document.getElementById('heatmapChart'); 
+                        if(hDom) { 
+                            const c = echarts.init(hDom); 
+                            try { 
+                                const r = await axios.get('/api/seats/stats', { params: { _t: new Date().getTime() } }); 
+                                const graphic = isLibraryClosed.value ? [{ type: 'text', left: 'center', top: 'middle', style: { text: '当前馆内维护/闭馆中', fill: 'rgba(239, 68, 68, 0.2)', fontSize: 40, fontWeight: 'bold' } }] : []; 
+                                c.setOption({ tooltip: {position:'top'}, grid: {top:'10%', bottom:'20%'}, xAxis:{type:'category', data:['8点','10点','12点','14点','16点','18点','20点']}, yAxis:{type:'category', data:['1F','2F','3F','4F','5F']}, visualMap:{min:0, max:5, inRange:{color:['#f0fdf4','#16a34a']}, orient:'horizontal', left:'center', bottom:0}, graphic: graphic, series:[{type:'heatmap', data:r.data, label:{show:true}}] }); 
+                                charts.push(c); 
+                            } catch(e){} 
+                        } 
+                        const cDom = document.getElementById('compareChart'); 
+                        if(cDom) { 
+                            const c = echarts.init(cDom); 
+                            try { 
+                                const r = await axios.get('/api/seats/saturation', { params: { _t: new Date().getTime() } }); 
+                                c.setOption({ tooltip:{trigger:'axis'}, grid:{top:10, bottom:20, left:40, right:20}, xAxis:{type:'value', max:100}, yAxis:{type:'category', data:['1F','2F','3F','4F','5F']}, series:[{type:'bar', data:r.data, itemStyle:{color:'#10b981', borderRadius:[0,5,5,0]}}] }); 
+                                charts.push(c); 
+                            } catch(e){} 
+                        }
+                    });
+                };
+
+                const updateTimeConstraints = () => {
+                    const now = new Date();
+                    const h = String(now.getHours()).padStart(2, '0');
+                    const m = String(now.getMinutes()).padStart(2, '0');
+                    limitTime.value = `${h}:${m}`;
+                    let nextH = now.getHours();
+                    let nextM = now.getMinutes() >= 30 ? 0 : 30;
+                    if (now.getMinutes() >= 30) nextH += 1;
+                    const nextTimeStr = `${String(nextH).padStart(2,'0')}:${String(nextM).padStart(2,'0')}`;
+                    if (bookingForm.value.startTime === '08:00') {
+                        bookingForm.value.startTime = nextTimeStr;
+                        let endH = nextH + 2;
+                        if (endH > 22) endH = 22;
+                        bookingForm.value.endTime = `${String(endH).padStart(2,'0')}:${String(nextM).padStart(2,'0')}`;
+                    }
+                };
+
                 const handleMenuSelect = (idx) => { 
                     activeMenu.value = idx; 
                     if(idx === 'news') fetchNewsData(); 
@@ -572,14 +636,8 @@
                 };
                 const handleAdminTabClick = (tab) => { if(tab.props.name === 'dashboard') fetchAdminDashboard(); if(tab.props.name === 'users') fetchAdminUsers(); if(tab.props.name === 'seats') fetchAdminSeats(); if(tab.props.name === 'newsMgr') fetchNewsData(); };
                 const handleUserCommand = (cmd) => { if(cmd === 'logout'){ localStorage.removeItem('user'); location.href='login0.html'; } else if(cmd === 'profile') activeMenu.value = 'profile'; };
-                
-                const fetchNewsData = async () => { try { const res = await axios.get('/api/news/latest'); newsData.value = res.data; } catch(e){} };
-                const submitNews = async () => { if(!newsForm.value.title) return ElementPlus.ElMessage.warning('请输入标题'); try { await axios.post('/api/news/add', newsForm.value); ElementPlus.ElMessage.success('新闻发布成功'); newsForm.value = { title: '', summary: '', content: '', coverImage: '' }; fetchNewsData(); } catch(e) { ElementPlus.ElMessage.error('发布失败'); } };
-                const handleDeleteNews = async (news) => { try { await ElementPlus.ElMessageBox.confirm('确定删除该条新闻？', '提示', { type: 'warning' }); await axios.post('/api/news/delete', news); ElementPlus.ElMessage.success('已删除'); fetchNewsData(); } catch(e){} };
-                const handleNewsImageSuccess = (res) => { newsForm.value.coverImage = res; };
-                const handleContentImgSuccess = (res) => { const imgTag = `<br><img src="${res}" style="max-width:100%; border-radius: 8px; margin: 10px 0;"><br>`; newsForm.value.content = (newsForm.value.content || '') + imgTag; };
 
-                // 监听逻辑
+                // Watch logic
                 watch([() => newSeat.value.floor, () => newSeat.value.zone], async ([f, z]) => {
                     if(!f || !z) return;
                     try {
@@ -610,7 +668,6 @@
                     fetchOccupancy(); setInterval(fetchOccupancy, 30000);
                     if(user.value.id) { 
                         checkMyReservation(); fetchMessages(); 
-                        // 3秒自动同步，解决换座刷新问题
                         setInterval(() => { checkMyReservation(); }, 3000);
                         setInterval(fetchMessages, 60000); 
                     }
@@ -635,7 +692,8 @@
                     newSeat, batchForm, addNewSeat, handleBatchMaintenance, toggleSingleMaintenance, deleteSingleSeat, handleBatchDelete,
                     newSeatNum, newSeatPrefix,
                     // 【导出互动功能】
-                    comments, newComment, commentSubmitting, userAction, submitComment, handleNewsAction
+                    comments, newComment, commentSubmitting, userAction, submitComment, handleNewsAction,
+                    replyToId, replyToName, setReply, cancelReply, handleCommentAction // 导出评论相关
                 };
             }
         });
