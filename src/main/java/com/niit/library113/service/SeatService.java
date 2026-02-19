@@ -3,7 +3,6 @@ package com.niit.library113.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.niit.library113.dto.ReservationRequest;
 import com.niit.library113.entity.Seat;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -15,16 +14,15 @@ public interface SeatService extends IService<Seat> {
     void checkIn(Long reservationId);
     void checkOut(Long reservationId);
     Seat getMyActiveSeat(Long userId);
-
-    // 数据大屏与管理
     List<List<Object>> getHeatmapData();
     List<Integer> getFloorSaturation();
     List<Map<String, Object>> getLatestLogs();
     Map<String, Object> getLibraryOccupancy();
-
-    // 核心管控
     void setSeatMaintenance(Long seatId, boolean isMaintenance);
     void closeLibrary();
     void openLibrary();
     boolean isLibraryClosed();
+
+    // 【本次新增】批量维护接口
+    void batchMaintenance(Integer floor, String zone, boolean isMaintenance);
 }

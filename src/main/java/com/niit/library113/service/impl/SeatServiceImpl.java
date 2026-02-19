@@ -4,9 +4,11 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.niit.library113.dto.ReservationRequest;
+import com.niit.library113.entity.CreditLog;
 import com.niit.library113.entity.Reservation;
 import com.niit.library113.entity.Seat;
 import com.niit.library113.entity.User;
+import com.niit.library113.mapper.CreditLogMapper;
 import com.niit.library113.mapper.ReservationMapper;
 import com.niit.library113.mapper.SeatMapper;
 import com.niit.library113.mapper.UserMapper;
@@ -32,37 +34,55 @@ public class SeatServiceImpl extends ServiceImpl<SeatMapper, Seat> implements Se
     private final ReservationMapper reservationMapper;
     private final UserMapper userMapper;
     private final MessageService messageService;
+    private final CreditLogMapper creditLogMapper;
 
     private final ZoneId ZONE_CN = ZoneId.of("Asia/Shanghai");
     private static boolean LIBRARY_CLOSED = false;
 
-    // =========================================================
-    //  【保留】每日 23:00 自动清场逻辑
-    // =========================================================
+    @Scheduled(cron = "0 * * * * ?", zone = "Asia/Shanghai")
+    @Transactional(rollbackFor = Exception.class)
+    public void autoCheckNoShows() {
+        LocalDateTime deadline = LocalDateTime.now(ZONE_CN).minusMinutes(30);
+        List<Reservation> noShows = reservationMapper.selectList(
+                new QueryWrapper<Reservation>().eq("status", 0).lt("start_time", deadline)
+        );
+        if(noShows.isEmpty()) return;
+
+        for (Reservation res : noShows) {
+            res.setStatus(2);
+            res.setEndTime(LocalDateTime.now(ZONE_CN));
+            reservationMapper.updateById(res);
+
+            Seat seat = this.getById(res.getSeatId());
+            String seatNum = "未知";
+            if (seat != null) { seatNum = seat.getSeatNumber(); seat.setStatus(0); this.updateById(seat); }
+
+            User user = userMapper.selectById(res.getUserId());
+            if (user != null) {
+                int oldScore = user.getCreditScore();
+                int newScore = Math.max(0, oldScore - 5);
+                int actualDelta = newScore - oldScore;
+                user.setCreditScore(newScore); userMapper.updateById(user);
+                if (actualDelta < 0) {
+                    CreditLog log = new CreditLog();
+                    log.setUserId(user.getId()); log.setDelta(actualDelta); log.setReason("超时30分钟未签到自动违约"); log.setCreateTime(LocalDateTime.now(ZONE_CN));
+                    creditLogMapper.insert(log);
+                }
+                try { messageService.send(user.getId(), "违规扣分通知", "您预约的座位 " + seatNum + " 已超过30分钟未签到，座位已被释放并扣除 5 分信用分。"); } catch(Exception e){}
+            }
+        }
+    }
+
     @Scheduled(cron = "0 0 23 * * ?", zone = "Asia/Shanghai")
     @Transactional(rollbackFor = Exception.class)
     public void autoReleaseAllSeats() {
-        System.out.println(">>> [定时任务] 23:00 闭馆清场开始...");
-
-        // 1. 结束所有进行中的预约
         UpdateWrapper<Reservation> resUpdate = new UpdateWrapper<>();
-        resUpdate.in("status", 0, 1)
-                .set("status", 3)
-                .set("end_time", LocalDateTime.now(ZONE_CN));
+        resUpdate.in("status", 0, 1).set("status", 3).set("end_time", LocalDateTime.now(ZONE_CN));
         reservationMapper.update(null, resUpdate);
-
-        // 2. 释放座位：只重置 "使用中(1)" 的座位，保留 "维修(2)"
         UpdateWrapper<Seat> seatUpdate = new UpdateWrapper<>();
         seatUpdate.eq("status", 1).set("status", 0);
-        long updatedRows = this.count(new QueryWrapper<Seat>().eq("status", 1));
         this.update(seatUpdate);
-
-        System.out.println(">>> [定时任务] 清场结束。释放座位数：" + updatedRows);
     }
-
-    // =========================================================
-    //  业务逻辑
-    // =========================================================
 
     @Override
     public List<Seat> findAvailableSeats(Integer floor, String zone, LocalDateTime checkStartTime, LocalDateTime checkEndTime) {
@@ -72,31 +92,14 @@ public class SeatServiceImpl extends ServiceImpl<SeatMapper, Seat> implements Se
     @Override
     @Transactional
     public boolean createReservation(ReservationRequest request) {
-        if (LIBRARY_CLOSED) throw new RuntimeException("当前图书馆已闭馆，暂停预约");
-        LocalDateTime now = LocalDateTime.now(ZONE_CN);
-        if (request.getStartTime().isBefore(now)) throw new RuntimeException("不能预约过去的时间");
-
-        // 【新增功能】 信用分检查：低于 60 分禁止预约
+        if (LIBRARY_CLOSED) throw new RuntimeException("闭馆中");
         User user = userMapper.selectById(request.getUserId());
-        if (user != null && user.getCreditScore() < 60) {
-            throw new RuntimeException("您的信用分低于60分，已被限制预约，请联系管理员恢复。");
-        }
-
-        // 检查是否有未完成的预约
-        if (reservationMapper.selectCount(new QueryWrapper<Reservation>().eq("user_id", request.getUserId()).in("status", 0, 1)) > 0)
-            throw new RuntimeException("您已有进行中的预约");
-
-        // 乐观锁抢座
+        if (user != null && user.getCreditScore() < 60) throw new RuntimeException("信用分不足60，禁止预约");
+        if (reservationMapper.selectCount(new QueryWrapper<Reservation>().eq("user_id", request.getUserId()).in("status", 0, 1)) > 0) throw new RuntimeException("已有预约");
         boolean success = this.update(new UpdateWrapper<Seat>().set("status", 1).eq("id", request.getSeatId()).eq("status", 0));
-        if (!success) throw new RuntimeException("手慢了，座位已被抢占或正在维护");
-
-        Reservation res = new Reservation();
-        res.setUserId(request.getUserId());
-        res.setSeatId(request.getSeatId());
-        res.setStartTime(request.getStartTime());
-        res.setEndTime(request.getEndTime());
-        res.setStatus(0);
-        res.setCreateTime(now);
+        if (!success) throw new RuntimeException("座位已被抢");
+        Reservation res = new Reservation(); res.setUserId(request.getUserId()); res.setSeatId(request.getSeatId());
+        res.setStartTime(request.getStartTime()); res.setEndTime(request.getEndTime()); res.setStatus(0); res.setCreateTime(LocalDateTime.now(ZONE_CN));
         reservationMapper.insert(res);
         return true;
     }
@@ -105,7 +108,7 @@ public class SeatServiceImpl extends ServiceImpl<SeatMapper, Seat> implements Se
     @Transactional
     public boolean cancelReservation(ReservationRequest request) {
         Reservation res = reservationMapper.selectOne(new QueryWrapper<Reservation>().eq("user_id", request.getUserId()).eq("seat_id", request.getSeatId()).in("status", 0, 1).last("LIMIT 1"));
-        if (res == null) throw new RuntimeException("未找到有效预约");
+        if (res == null) throw new RuntimeException("无有效预约");
         res.setStatus(4); reservationMapper.updateById(res);
         Seat seat = this.getById(res.getSeatId());
         if (seat != null) { seat.setStatus(0); this.updateById(seat); }
@@ -115,22 +118,16 @@ public class SeatServiceImpl extends ServiceImpl<SeatMapper, Seat> implements Se
     @Override
     @Transactional
     public void checkIn(Long reservationId) {
-        if (LIBRARY_CLOSED) throw new RuntimeException("闭馆中，无法签到");
+        if (LIBRARY_CLOSED) throw new RuntimeException("闭馆中");
         Reservation res = reservationMapper.selectById(reservationId);
-        if (res == null || res.getStatus() != 0) throw new RuntimeException("预约状态无效");
-
-        if (LocalDateTime.now(ZONE_CN).isBefore(res.getStartTime()))
-            throw new RuntimeException("未到预约时间，请稍后再试");
-
-        res.setStatus(1);
-        reservationMapper.updateById(res);
-
-        // 【保留功能】按时签到，信用分 +3
+        if (res == null || res.getStatus() != 0) throw new RuntimeException("状态无效");
+        if (LocalDateTime.now(ZONE_CN).isBefore(res.getStartTime())) throw new RuntimeException("未到时间");
+        res.setStatus(1); reservationMapper.updateById(res);
         User user = userMapper.selectById(res.getUserId());
         if (user != null) {
-            int newScore = Math.min(100, user.getCreditScore() + 3);
-            user.setCreditScore(newScore);
-            userMapper.updateById(user);
+            int oldScore = user.getCreditScore(); int newScore = Math.min(100, oldScore + 3); int delta = newScore - oldScore;
+            user.setCreditScore(newScore); userMapper.updateById(user);
+            if (delta > 0) { CreditLog log = new CreditLog(); log.setUserId(user.getId()); log.setDelta(delta); log.setReason("按时签到"); log.setCreateTime(LocalDateTime.now(ZONE_CN)); creditLogMapper.insert(log); }
         }
     }
 
@@ -142,69 +139,48 @@ public class SeatServiceImpl extends ServiceImpl<SeatMapper, Seat> implements Se
         res.setStatus(3); res.setEndTime(LocalDateTime.now(ZONE_CN)); reservationMapper.updateById(res);
         Seat seat = this.getById(res.getSeatId());
         if (seat != null) { seat.setStatus(0); this.updateById(seat); }
-
-        // 签退加1分
         User user = userMapper.selectById(res.getUserId());
-        if(user != null && user.getCreditScore() < 100) { user.setCreditScore(user.getCreditScore()+1); userMapper.updateById(user); }
+        if(user != null && user.getCreditScore() < 100) {
+            user.setCreditScore(user.getCreditScore() + 1); userMapper.updateById(user);
+            CreditLog log = new CreditLog(); log.setUserId(user.getId()); log.setDelta(1); log.setReason("正常签退"); log.setCreateTime(LocalDateTime.now(ZONE_CN)); creditLogMapper.insert(log);
+        }
     }
 
     @Override
     public Seat getMyActiveSeat(Long userId) { return null; }
 
-    // --- 数据统计与维护 ---
-
     @Override
     public List<List<Object>> getHeatmapData() {
         List<List<Object>> result = new ArrayList<>();
-        if (LIBRARY_CLOSED) {
-            for (int x = 0; x < 7; x++) { for (int y = 0; y < 5; y++) { List<Object> item = new ArrayList<>(); item.add(x); item.add(y); item.add(0); result.add(item); } }
-            return result;
-        }
-        LocalDateTime startOfDay = LocalDate.now(ZONE_CN).atStartOfDay();
-        LocalDateTime endOfDay = LocalDateTime.of(LocalDate.now(ZONE_CN), LocalTime.MAX);
+        if (LIBRARY_CLOSED) { for (int x = 0; x < 7; x++) { for (int y = 0; y < 5; y++) { result.add(Arrays.asList(x, y, 0)); } } return result; }
+        LocalDateTime startOfDay = LocalDate.now(ZONE_CN).atStartOfDay(); LocalDateTime endOfDay = LocalDateTime.of(LocalDate.now(ZONE_CN), LocalTime.MAX);
         List<Reservation> todayReservations = reservationMapper.selectList(new QueryWrapper<Reservation>().ge("start_time", startOfDay).lt("start_time", endOfDay).in("status", 0, 1));
-        List<Seat> allSeats = this.list();
-        Map<Long, Integer> seatFloorMap = allSeats.stream().collect(Collectors.toMap(Seat::getId, Seat::getFloor));
+        List<Seat> allSeats = this.list(); Map<Long, Integer> seatFloorMap = allSeats.stream().collect(Collectors.toMap(Seat::getId, Seat::getFloor));
         int[][] matrix = new int[7][5];
         for (Reservation res : todayReservations) {
-            Integer floor = seatFloorMap.get(res.getSeatId());
-            if (floor == null) continue;
-            int yIndex = floor - 1;
-            LocalDateTime sTime = res.getStartTime();
-            if (sTime.getHour() < 8) sTime = sTime.plusHours(8);
-            int startSlot = Math.max(0, (sTime.getHour() - 8) / 2);
-            if(startSlot < 7) matrix[startSlot][yIndex]++;
+            Integer floor = seatFloorMap.get(res.getSeatId()); if (floor == null) continue;
+            int yIndex = floor - 1; LocalDateTime sTime = res.getStartTime(); if (sTime.getHour() < 8) sTime = sTime.plusHours(8);
+            int startSlot = Math.max(0, (sTime.getHour() - 8) / 2); if(startSlot < 7) matrix[startSlot][yIndex]++;
         }
-        for (int x = 0; x < 7; x++) { for (int y = 0; y < 5; y++) { List<Object> item = new ArrayList<>(); item.add(x); item.add(y); item.add(matrix[x][y]); result.add(item); } }
+        for (int x = 0; x < 7; x++) { for (int y = 0; y < 5; y++) { result.add(Arrays.asList(x, y, matrix[x][y])); } }
         return result;
     }
 
     @Override
     public List<Integer> getFloorSaturation() {
-        List<Integer> list = new ArrayList<>();
-        List<Seat> all = this.list();
-        for(int i=1; i<=5; i++) {
-            int f = i;
-            long total = all.stream().filter(s->s.getFloor()==f).count();
-            long occ = all.stream().filter(s->s.getFloor()==f && s.getStatus()==1).count();
-            list.add(total==0?0:(int)(occ*100/total));
-        }
+        List<Integer> list = new ArrayList<>(); List<Seat> all = this.list();
+        for(int i=1; i<=5; i++) { int f = i; long total = all.stream().filter(s->s.getFloor()==f).count(); long occ = all.stream().filter(s->s.getFloor()==f && s.getStatus()==1).count(); list.add(total==0?0:(int)(occ*100/total)); }
         return list;
     }
 
     @Override
     public List<Map<String, Object>> getLatestLogs() {
-        List<Reservation> logs = reservationMapper.selectList(new QueryWrapper<Reservation>().orderByDesc("create_time").last("LIMIT 6"));
+        List<Reservation> logs = reservationMapper.selectList(new QueryWrapper<Reservation>().eq("status", 1).orderByDesc("id").last("LIMIT 6"));
         List<Map<String, Object>> result = new ArrayList<>();
         for(Reservation r : logs) {
-            User u = userMapper.selectById(r.getUserId());
-            Seat s = this.getById(r.getSeatId());
+            User u = userMapper.selectById(r.getUserId()); Seat s = this.getById(r.getSeatId());
             if(u!=null && s!=null) {
-                Map<String, Object> map = new HashMap<>();
-                map.put("name", u.getRealName()); map.put("avatar", u.getAvatar()); map.put("location", s.getFloor()+"F "+s.getZone());
-                String action = "预约了"; if(r.getStatus()==1) action="使用中"; if(r.getStatus()==2) action="违约了"; if(r.getStatus()==3) action="完成了"; if(r.getStatus()==4) action="取消了";
-                map.put("action", action); map.put("time", r.getCreateTime().format(DateTimeFormatter.ofPattern("HH:mm")));
-                result.add(map);
+                Map<String, Object> map = new HashMap<>(); map.put("name", u.getRealName()); map.put("avatar", u.getAvatar()); map.put("location", s.getFloor()+"F "+s.getZone()); map.put("action", "已签到入座"); map.put("time", r.getCreateTime().format(DateTimeFormatter.ofPattern("HH:mm"))); result.add(map);
             }
         }
         return result;
@@ -212,78 +188,78 @@ public class SeatServiceImpl extends ServiceImpl<SeatMapper, Seat> implements Se
 
     @Override
     public Map<String, Object> getLibraryOccupancy() {
-        long total = this.count();
-        long occupied = this.count(new QueryWrapper<Seat>().eq("status", 1));
-        Map<String, Object> map = new HashMap<>();
-        map.put("total", total); map.put("occupied", occupied);
-        map.put("percent", total==0?0:(int)(occupied*100.0/total));
-        return map;
+        long total = this.count(); long occupied = this.count(new QueryWrapper<Seat>().eq("status", 1));
+        Map<String, Object> map = new HashMap<>(); map.put("total", total); map.put("occupied", occupied); map.put("percent", total==0?0:(int)(occupied*100.0/total)); return map;
     }
 
-    // --- 【保留功能】智能维护：自动调剂 + 满员拦截 ---
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void setSeatMaintenance(Long seatId, boolean isMaintenance) {
-        Seat targetSeat = this.getById(seatId);
-        if (targetSeat == null) return;
-
+        Seat targetSeat = this.getById(seatId); if (targetSeat == null) return;
         if (isMaintenance) {
-            // 设为维护：智能调剂
-            List<Reservation> conflicts = reservationMapper.selectList(
-                    new QueryWrapper<Reservation>().eq("seat_id", seatId).in("status", 0, 1)
-            );
+            // 【核心拦截】：如果该座位已有人签到（status=1），直接拒绝维护
+            Long checkedInCount = reservationMapper.selectCount(new QueryWrapper<Reservation>().eq("seat_id", seatId).eq("status", 1));
+            if (checkedInCount != null && checkedInCount > 0) {
+                throw new RuntimeException("拦截！该座位当前已有用户【正在使用(已签到)】，无法直接设置为维护状态。请等待用户签退后再操作！");
+            }
 
-            if (!conflicts.isEmpty()) {
-                for (Reservation res : conflicts) {
-                    // 策略A: 找同楼层同区域
-                    Seat newSeat = this.getOne(new QueryWrapper<Seat>().eq("floor", targetSeat.getFloor()).eq("zone", targetSeat.getZone()).eq("status", 0).last("LIMIT 1"), false);
-                    // 策略B: 找同楼层其他区域
-                    if (newSeat == null) newSeat = this.getOne(new QueryWrapper<Seat>().eq("floor", targetSeat.getFloor()).eq("status", 0).last("LIMIT 1"), false);
-                    // 策略C: 全馆任意空位
-                    if (newSeat == null) newSeat = this.getOne(new QueryWrapper<Seat>().eq("status", 0).last("LIMIT 1"), false);
-
-                    if (newSeat != null) {
-                        newSeat.setStatus(1); // 设为占用
-                        this.updateById(newSeat);
-                        res.setSeatId(newSeat.getId());
-                        reservationMapper.updateById(res);
-                        try { messageService.send(res.getUserId(), "座位调整通知", "抱歉，您原座位 " + targetSeat.getSeatNumber() + " 需紧急维护，系统已自动为您调换至 " + newSeat.getSeatNumber()); } catch(Exception e){}
-                    } else {
-                        throw new RuntimeException("操作失败：该座位有用户正在使用，且全馆已满，无法自动分配新座位！");
-                    }
-                }
+            // 对于仅仅是预约了（status=0）但还没来签到的用户，可以执行自动换座调剂
+            List<Reservation> conflicts = reservationMapper.selectList(new QueryWrapper<Reservation>().eq("seat_id", seatId).eq("status", 0));
+            for (Reservation res : conflicts) {
+                Seat newSeat = this.getOne(new QueryWrapper<Seat>().eq("status", 0).last("LIMIT 1"), false);
+                if (newSeat != null) {
+                    newSeat.setStatus(1); this.updateById(newSeat); res.setSeatId(newSeat.getId()); reservationMapper.updateById(res);
+                    try { messageService.send(res.getUserId(), "座位调整通知", "原座位维护，已调至 " + newSeat.getSeatNumber()); } catch(Exception e){}
+                } else { throw new RuntimeException("全馆已满无座可换，无法维护该座位！"); }
             }
             targetSeat.setStatus(2);
-
         } else {
-            // 解除维护：仅当状态为2时重置
-            if (targetSeat.getStatus() == 2) {
-                targetSeat.setStatus(0);
-            }
+            if (targetSeat.getStatus() == 2) targetSeat.setStatus(0);
         }
         this.updateById(targetSeat);
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void batchMaintenance(Integer floor, String zone, boolean isMaintenance) {
+        QueryWrapper<Seat> query = new QueryWrapper<>();
+        if (floor != null) query.eq("floor", floor);
+        if (zone != null && !"全部".equals(zone) && !zone.isEmpty()) query.eq("zone", zone);
+        List<Seat> targetSeats = this.list(query); if (targetSeats.isEmpty()) return;
+        List<Long> targetSeatIds = targetSeats.stream().map(Seat::getId).collect(Collectors.toList());
+
+        if (isMaintenance) {
+            // 【核心拦截】：检查批量维护的这批座位里，有没有正在被使用的
+            Long checkedInCount = reservationMapper.selectCount(new QueryWrapper<Reservation>().in("seat_id", targetSeatIds).eq("status", 1));
+            if (checkedInCount != null && checkedInCount > 0) {
+                throw new RuntimeException("拦截！该区域内有部分座位已有用户【正在使用(已签到)】，无法执行批量维护！请先让用户签退。");
+            }
+
+            UpdateWrapper<Seat> updateTarget = new UpdateWrapper<>(); updateTarget.in("id", targetSeatIds).set("status", 2); this.update(updateTarget);
+            List<Reservation> conflicts = reservationMapper.selectList(new QueryWrapper<Reservation>().in("seat_id", targetSeatIds).eq("status", 0));
+            Map<Long, String> seatNumMap = targetSeats.stream().collect(Collectors.toMap(Seat::getId, Seat::getSeatNumber));
+
+            for (Reservation res : conflicts) {
+                Seat newSeat = this.getOne(new QueryWrapper<Seat>().eq("status", 0).last("LIMIT 1"), false);
+                String oldSeatNum = seatNumMap.getOrDefault(res.getSeatId(), "未知");
+                if (newSeat != null) {
+                    newSeat.setStatus(1); this.updateById(newSeat); res.setSeatId(newSeat.getId()); reservationMapper.updateById(res);
+                    try { messageService.send(res.getUserId(), "调座通知", "原座位 " + oldSeatNum + " 维护，已调至: " + newSeat.getSeatNumber()); } catch(Exception e){}
+                } else {
+                    res.setStatus(4); reservationMapper.updateById(res);
+                    try { messageService.send(res.getUserId(), "取消通知", "原座位 " + oldSeatNum + " 维护且全馆已满，预约已取消。"); } catch(Exception e){}
+                }
+            }
+        } else {
+            UpdateWrapper<Seat> updateTarget = new UpdateWrapper<>(); updateTarget.in("id", targetSeatIds).eq("status", 2).set("status", 0); this.update(updateTarget);
+        }
+    }
+
+    @Override
     @Transactional
-    public void closeLibrary() {
-        LIBRARY_CLOSED = true;
-        UpdateWrapper<Seat> seatUpdate = new UpdateWrapper<>();
-        seatUpdate.set("status", 0).ne("status", 2);
-        this.update(seatUpdate);
-
-        UpdateWrapper<Reservation> resUpdate = new UpdateWrapper<>();
-        resUpdate.in("status", 0, 1, 3).set("status", 4);
-        reservationMapper.update(null, resUpdate);
-    }
-
+    public void closeLibrary() { LIBRARY_CLOSED = true; UpdateWrapper<Seat> seatUpdate = new UpdateWrapper<>(); seatUpdate.set("status", 0).ne("status", 2); this.update(seatUpdate); UpdateWrapper<Reservation> resUpdate = new UpdateWrapper<>(); resUpdate.in("status", 0, 1, 3).set("status", 4); reservationMapper.update(null, resUpdate); }
     @Override
-    public void openLibrary() {
-        LIBRARY_CLOSED = false;
-    }
-
+    public void openLibrary() { LIBRARY_CLOSED = false; }
     @Override
-    public boolean isLibraryClosed() {
-        return LIBRARY_CLOSED;
-    }
+    public boolean isLibraryClosed() { return LIBRARY_CLOSED; }
 }

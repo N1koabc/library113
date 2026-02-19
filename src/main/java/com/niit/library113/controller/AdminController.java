@@ -1,10 +1,8 @@
 package com.niit.library113.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.niit.library113.entity.Notice;
-import com.niit.library113.entity.Reservation;
-import com.niit.library113.entity.Seat;
-import com.niit.library113.entity.User;
+import com.niit.library113.entity.*;
+import com.niit.library113.mapper.CreditLogMapper;
 import com.niit.library113.mapper.ReservationMapper;
 import com.niit.library113.service.NoticeService;
 import com.niit.library113.service.SeatService;
@@ -25,21 +23,15 @@ import java.util.*;
 @CrossOrigin
 public class AdminController {
 
-    @Autowired
-    private UserService userService;
-    @Autowired
-    private SeatService seatService;
-    @Autowired
-    private NoticeService noticeService;
-    @Autowired
-    private ReservationMapper reservationMapper;
+    @Autowired private UserService userService;
+    @Autowired private SeatService seatService;
+    @Autowired private NoticeService noticeService;
+    @Autowired private ReservationMapper reservationMapper;
+    @Autowired private CreditLogMapper creditLogMapper; // 新增注入
 
     private boolean checkPermission(Long userId) {
-        // 简单鉴权，实际项目中可结合 Spring Security
         return userService.isAdmin(userId);
     }
-
-    // ================== 1. 仪表盘与基础数据 ==================
 
     @GetMapping("/dashboard")
     public ResponseEntity<?> getDashboard(@RequestHeader(value = "user-id", required = false) Long userId) {
@@ -64,14 +56,31 @@ public class AdminController {
     @PostMapping("/credit")
     public ResponseEntity<?> adjustCredit(@RequestHeader(value = "user-id", required = false) Long userId, @RequestBody Map<String, Object> params) {
         if (!checkPermission(userId)) return ResponseEntity.status(HttpStatus.FORBIDDEN).body("无权访问");
-        String username = (String) params.get("username"); Integer delta = (Integer) params.get("delta");
+        String username = (String) params.get("username");
+        Integer delta = (Integer) params.get("delta");
+
         User user = userService.getOne(new QueryWrapper<User>().eq("username", username));
         if (user == null) return ResponseEntity.badRequest().body("用户不存在");
-        user.setCreditScore(Math.max(0, Math.min(100, user.getCreditScore() + delta))); userService.updateById(user);
+
+        int oldScore = user.getCreditScore();
+        int newScore = Math.max(0, Math.min(100, oldScore + delta));
+        int actualDelta = newScore - oldScore; // 计算真实改变的值
+
+        user.setCreditScore(newScore);
+        userService.updateById(user);
+
+        // 记录流水
+        if (actualDelta != 0) {
+            CreditLog log = new CreditLog();
+            log.setUserId(user.getId());
+            log.setDelta(actualDelta);
+            log.setReason("管理员后台调整");
+            log.setCreateTime(LocalDateTime.now());
+            creditLogMapper.insert(log);
+        }
+
         return ResponseEntity.ok("信用分已更新");
     }
-
-    // ================== 2. 公告与新闻管理 ==================
 
     @PostMapping("/notice")
     public ResponseEntity<?> publishNotice(@RequestHeader(value = "user-id", required = false) Long userId, @RequestBody Notice notice) {
@@ -87,30 +96,24 @@ public class AdminController {
         return noticeService.removeById(params.get("id")) ? ResponseEntity.ok("已撤回") : ResponseEntity.badRequest().body("操作失败");
     }
 
-    // ================== 3. 座位资源管控 (核心匹配前端) ==================
-
-    // [增] 添加座位
     @PostMapping("/seat/add")
     public ResponseEntity<?> addSeat(@RequestHeader(value = "user-id") Long userId, @RequestBody Seat seat) {
         if (!checkPermission(userId)) return ResponseEntity.status(HttpStatus.FORBIDDEN).body("无权操作");
         Long count = seatService.count(new QueryWrapper<Seat>().eq("seat_number", seat.getSeatNumber()));
         if (count > 0) return ResponseEntity.badRequest().body("座位号 " + seat.getSeatNumber() + " 已存在");
-        seat.setStatus(0); // 默认空闲
+        seat.setStatus(0);
         return seatService.save(seat) ? ResponseEntity.ok("座位添加成功") : ResponseEntity.badRequest().body("添加失败");
     }
 
-    // [删] 删除单个座位
     @PostMapping("/seat/delete")
     public ResponseEntity<?> deleteSeat(@RequestHeader(value = "user-id") Long userId, @RequestBody Map<String, Long> params) {
         if (!checkPermission(userId)) return ResponseEntity.status(HttpStatus.FORBIDDEN).body("无权操作");
         Long seatId = params.get("id");
         Seat seat = seatService.getById(seatId);
-        // 保护：使用中不可删
         if (seat != null && seat.getStatus() == 1) return ResponseEntity.badRequest().body("该座位使用中，无法删除");
         return seatService.removeById(seatId) ? ResponseEntity.ok("已移除座位") : ResponseEntity.badRequest().body("删除失败");
     }
 
-    // [批量删] 批量删除区域 (前端红色危险区)
     @PostMapping("/seat/batch-delete")
     public ResponseEntity<?> batchDelete(@RequestHeader(value = "user-id") Long userId, @RequestBody Map<String, Object> params) {
         if (!checkPermission(userId)) return ResponseEntity.status(HttpStatus.FORBIDDEN).body("无权操作");
@@ -118,29 +121,25 @@ public class AdminController {
         Integer floor = (Integer) params.get("floor");
         String zone = (String) params.get("zone");
 
-        // 安全检查：必须指定范围
         if (floor == null && (zone == null || "全部".equals(zone) || zone.isEmpty())) {
-            return ResponseEntity.badRequest().body("必须指定楼层或区域才能执行批量删除");
+            return ResponseEntity.badRequest().body("必须指定楼层或区域");
         }
 
-        // 检查是否有占用
         QueryWrapper<Seat> checkQuery = new QueryWrapper<>();
         if (floor != null) checkQuery.eq("floor", floor);
         if (zone != null && !"全部".equals(zone) && !zone.isEmpty()) checkQuery.eq("zone", zone);
-        checkQuery.eq("status", 1); // 1=使用中
+        checkQuery.eq("status", 1);
         if (seatService.count(checkQuery) > 0) {
-            return ResponseEntity.badRequest().body("区域内有座位正在被使用，无法执行批量删除！");
+            return ResponseEntity.badRequest().body("区域内有座位被使用，无法批量删除");
         }
 
-        // 执行删除
         QueryWrapper<Seat> deleteQuery = new QueryWrapper<>();
         if (floor != null) deleteQuery.eq("floor", floor);
         if (zone != null && !"全部".equals(zone) && !zone.isEmpty()) deleteQuery.eq("zone", zone);
 
-        return seatService.remove(deleteQuery) ? ResponseEntity.ok("区域数据已清空") : ResponseEntity.badRequest().body("删除失败或无数据");
+        return seatService.remove(deleteQuery) ? ResponseEntity.ok("清空成功") : ResponseEntity.badRequest().body("删除失败");
     }
 
-    // [维护] 单个维护切换
     @PostMapping("/seat/maintenance")
     public ResponseEntity<?> toggleMaintenance(@RequestHeader(value = "user-id", required = false) Long userId, @RequestBody Map<String, Object> params) {
         if (!checkPermission(userId)) return ResponseEntity.status(HttpStatus.FORBIDDEN).body("无权访问");
@@ -152,45 +151,32 @@ public class AdminController {
         }
     }
 
-    // [批量维护] 批量锁定/解锁
     @PostMapping("/seat/batch-maintenance")
     public ResponseEntity<?> batchMaintenance(@RequestHeader(value = "user-id") Long userId, @RequestBody Map<String, Object> params) {
         if (!checkPermission(userId)) return ResponseEntity.status(HttpStatus.FORBIDDEN).body("无权访问");
-
-        Integer floor = (Integer) params.get("floor");
+        Integer floor = params.get("floor") != null ? Integer.valueOf(params.get("floor").toString()) : null;
         String zone = (String) params.get("zone");
         Boolean maintenance = (Boolean) params.get("maintenance");
-
-        QueryWrapper<Seat> query = new QueryWrapper<>();
-        if (floor != null) query.eq("floor", floor);
-        if (zone != null && !"全部".equals(zone) && !zone.isEmpty()) query.eq("zone", zone);
-
-        List<Seat> targetSeats = seatService.list(query);
         try {
-            for (Seat s : targetSeats) {
-                seatService.setSeatMaintenance(s.getId(), maintenance);
-            }
-            return ResponseEntity.ok("批量操作已完成");
+            seatService.batchMaintenance(floor, zone, maintenance);
+            return ResponseEntity.ok("批量操作完成");
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body("部分操作失败：" + e.getMessage());
+            return ResponseEntity.badRequest().body("失败：" + e.getMessage());
         }
     }
 
-    // [闭馆] 一键闭馆
     @PostMapping("/library/toggle")
     public ResponseEntity<?> toggleLibrary(@RequestHeader(value = "user-id") Long userId, @RequestBody Map<String, Boolean> params) {
         if (!checkPermission(userId)) return ResponseEntity.status(HttpStatus.FORBIDDEN).body("无权访问");
         boolean close = params.get("close");
         if (close) {
             seatService.closeLibrary();
-            return ResponseEntity.ok("全馆已闭馆，座位已释放");
+            return ResponseEntity.ok("已闭馆");
         } else {
             seatService.openLibrary();
-            return ResponseEntity.ok("已恢复正常开馆状态");
+            return ResponseEntity.ok("已恢复开馆");
         }
     }
-
-    // ================== 4. 趋势图数据 ==================
 
     @GetMapping("/trend")
     public ResponseEntity<?> getTrendData(@RequestHeader(value = "user-id") Long userId, @RequestParam String type) {
@@ -202,8 +188,7 @@ public class AdminController {
         int steps;
 
         if ("day".equals(type)) {
-            start = LocalDate.now().atStartOfDay();
-            end = LocalDate.now().atTime(LocalTime.MAX);
+            start = LocalDate.now().atStartOfDay(); end = LocalDate.now().atTime(LocalTime.MAX);
             dateFormat = "%H"; steps = 24;
         } else if ("month".equals(type)) {
             start = LocalDate.now().withDayOfMonth(1).atStartOfDay();
@@ -214,13 +199,8 @@ public class AdminController {
         }
 
         QueryWrapper<Reservation> query = new QueryWrapper<>();
-        query.select("DATE_FORMAT(create_time, '" + dateFormat + "') as key_str",
-                        "count(*) as total",
-                        "sum(case when status = 2 then 1 else 0 end) as vio")
-                .ge("create_time", start)
-                .le("create_time", end)
-                .groupBy("key_str")
-                .orderByAsc("key_str");
+        query.select("DATE_FORMAT(create_time, '" + dateFormat + "') as key_str", "count(*) as total", "sum(case when status = 2 then 1 else 0 end) as vio")
+                .ge("create_time", start).le("create_time", end).groupBy("key_str").orderByAsc("key_str");
 
         List<Map<String, Object>> dbList = reservationMapper.selectMaps(query);
         Map<String, Map<String, Object>> dataMap = new HashMap<>();
