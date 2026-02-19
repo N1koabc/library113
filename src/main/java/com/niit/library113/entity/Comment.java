@@ -15,21 +15,20 @@ public class Comment {
     private Long id;
     private Long newsId;
     private Long userId;
+    private Long parentId; // 根评论ID (楼层ID)
+    private Long replyToUserId; // 【新增】具体回复了谁 (用于发通知)
     private String content;
-    private LocalDateTime createTime;
-
-    // 【新增】互动与结构字段
     private Integer likeCount = 0;
     private Integer dislikeCount = 0;
-    private Long parentId; // 如果是回复，则存父评论ID
+    private LocalDateTime createTime;
 
-    // --- 辅助字段 (不存数据库) ---
+    // --- 辅助字段 (前端显示用) ---
     @TableField(exist = false)
-    private String userName;
+    private String userName;     // 发评人昵称
     @TableField(exist = false)
-    private String userAvatar;
-
-    // 用于存放子评论（回复）
+    private String userAvatar;   // 发评人头像
     @TableField(exist = false)
-    private List<Comment> replies;
+    private String replyToUserName; // 【新增】被回复人的昵称 (显示 @张三)
+    @TableField(exist = false)
+    private List<Comment> replies; // 子评论列表
 }

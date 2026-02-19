@@ -7,16 +7,13 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-@TableName("message")
-public class Message {
+@TableName("user_action")
+public class UserAction {
     @TableId(type = IdType.AUTO)
     private Long id;
     private Long userId;
-    private String title;
-    private String content;
-    private Boolean isRead = false;
+    private Long targetId;
+    private String targetType; // "NEWS" 或 "COMMENT"
+    private String actionType; // "LIKE" 或 "DISLIKE"
     private LocalDateTime createTime;
-
-    private Long relatedId; // 存新闻ID (打开哪个新闻)
-    private Long commentId; // 【新增】存评论ID (滚动到哪条评论)
 }

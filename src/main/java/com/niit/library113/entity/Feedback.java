@@ -1,22 +1,27 @@
 package com.niit.library113.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-@TableName("message")
-public class Message {
+@TableName("feedback")
+public class Feedback {
     @TableId(type = IdType.AUTO)
     private Long id;
     private Long userId;
-    private String title;
+    private String type;
     private String content;
-    private Boolean isRead = false;
+    private Integer status = 0;
+    private String reply;
     private LocalDateTime createTime;
 
-    private Long relatedId; // 存新闻ID (打开哪个新闻)
-    private Long commentId; // 【新增】存评论ID (滚动到哪条评论)
+    // 辅助字段（用于管理员界面显示发件人）
+    @TableField(exist = false)
+    private String userName;
+    @TableField(exist = false)
+    private String userAvatar;
 }

@@ -13,19 +13,30 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
 
     @Override
     public void send(Long userId, String title, String content) {
+        send(userId, title, content, null, null);
+    }
+
+    @Override
+    public void send(Long userId, String title, String content, Long relatedId) {
+        send(userId, title, content, relatedId, null);
+    }
+
+    // 【新增】保存带有 commentId 的消息
+    @Override
+    public void send(Long userId, String title, String content, Long relatedId, Long commentId) {
         Message msg = new Message();
         msg.setUserId(userId);
         msg.setTitle(title);
         msg.setContent(content);
-        msg.setIsRead(false);
+        msg.setRelatedId(relatedId);
+        msg.setCommentId(commentId);
         msg.setCreateTime(LocalDateTime.now());
+        msg.setIsRead(false);
         this.save(msg);
     }
 
     @Override
     public long getUnreadCount(Long userId) {
-        return this.count(new QueryWrapper<Message>()
-                .eq("user_id", userId)
-                .eq("is_read", 0));
+        return this.count(new QueryWrapper<Message>().eq("user_id", userId).eq("is_read", false));
     }
 }
