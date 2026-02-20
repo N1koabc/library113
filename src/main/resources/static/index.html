@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>自习室预约系统 - 智能互联版</title>
-    
+
     <script src="https://cdn.jsdelivr.net/npm/vue@3.3.4/dist/vue.global.prod.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/element-plus@2.4.2/dist/index.css">
     <script src="https://cdn.jsdelivr.net/npm/element-plus@2.4.2/dist/index.full.min.js"></script>
@@ -13,12 +13,12 @@
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    
+
     <style>
         :root { --primary-color: #059669; --bg-color: #f1f5f9; --sidebar-width: 280px; --sidebar-mini-width: 76px; }
         body { background-color: var(--bg-color); color: #334155; font-family: 'Inter', sans-serif; overflow: hidden; margin: 0; }
         [v-cloak] { display: none !important; }
-        
+
         .sidebar-container { background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(20px); border-top-right-radius: 24px; border-bottom-right-radius: 24px; height: 100vh; width: var(--sidebar-mini-width) !important; border-right: 1px solid rgba(226, 232, 240, 0.8); display: flex; flex-direction: column; position: fixed; left: 0; top: 0; z-index: 9999; box-shadow: 4px 0 12px rgba(0,0,0,0.03); transition: width 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s ease; overflow: hidden; }
         .sidebar-container:hover { width: var(--sidebar-width) !important; box-shadow: 10px 0 40px rgba(0,0,0,0.1); }
         .sidebar-text-content, .el-menu-item span, .sidebar-footer { opacity: 0; transform: translateX(-10px); transition: opacity 0.2s ease, transform 0.2s ease; white-space: nowrap; pointer-events: none; }
@@ -80,177 +80,204 @@
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         .highlight-comment { transition: background-color 1.5s ease-out; }
+
+        @keyframes urgent-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); border-color: rgba(239, 68, 68, 0.5); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); border-color: rgba(239, 68, 68, 1); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); border-color: rgba(239, 68, 68, 0.5); }
+        }
+        .island-urgent { animation: urgent-pulse 2s infinite; }
     </style>
 </head>
 <body>
-    <div id="app" v-cloak>
-        <el-container class="h-screen">
-            <el-aside class="sidebar-container">
-                <div class="logo-area">
-                    <div class="w-10 h-10 min-w-[2.5rem] bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-200 text-white">
-                        <el-icon size="20"><component :is="'School'"></component></el-icon>
-                    </div>
-                    <div class="ml-3 sidebar-text-content"><h2 class="text-lg font-black text-slate-800 tracking-tight leading-none whitespace-nowrap">桂电自修</h2><span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest whitespace-nowrap">Study Online</span></div>
+<div id="app" v-cloak>
+    <el-container class="h-screen">
+        <el-aside class="sidebar-container">
+            <div class="logo-area">
+                <div class="w-10 h-10 min-w-[2.5rem] bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-200 text-white">
+                    <el-icon size="20"><component :is="'School'"></component></el-icon>
                 </div>
-                <el-menu :default-active="activeMenu" @select="handleMenuSelect" class="flex-grow">
-                    <el-menu-item index="news"><el-icon><component :is="'Reading'"></component></el-icon><span>桂电资讯</span></el-menu-item>
-                    <el-menu-item index="dashboard"><el-icon><component :is="'DataBoard'"></component></el-icon><span>场馆看板</span></el-menu-item>
-                    <el-menu-item index="booking"><el-icon><component :is="'Calendar'"></component></el-icon><span>选座预约</span></el-menu-item>
-                    <el-menu-item index="profile"><el-icon><component :is="'User'"></component></el-icon><span>个人中心</span></el-menu-item>
-                    <el-menu-item index="feedback"><el-icon><component :is="'ChatDotSquare'"></component></el-icon><span>意见反馈</span></el-menu-item>
-                    <el-menu-item index="admin" v-if="user.role === 'admin'" style="margin-top: 20px; border-top: 1px solid #f1f5f9; padding-top: 10px;"><el-icon><component :is="'Setting'"></component></el-icon><span>后台管理</span></el-menu-item>
-                </el-menu>
-                <div class="sidebar-footer">
-                    <div class="bg-slate-50 border rounded-xl p-4 border-slate-100"><div class="flex justify-between items-center mb-2"><span class="text-[10px] font-bold text-slate-400 uppercase tracking-tight">座位使用率</span><span class="text-[10px] text-emerald-500 font-bold">{{ occupancy.occupied }}/{{ occupancy.total }} ({{ occupancy.percent }}%)</span></div><el-progress :percentage="occupancy.percent" :stroke-width="6" color="#10b981" :show-text="false"></el-progress></div>
-                </div>
-            </el-aside>
+                <div class="ml-3 sidebar-text-content"><h2 class="text-lg font-black text-slate-800 tracking-tight leading-none whitespace-nowrap">桂电自修</h2><span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest whitespace-nowrap">Study Online</span></div>
+            </div>
+            <el-menu :default-active="activeMenu" @select="handleMenuSelect" class="flex-grow">
+                <el-menu-item index="news"><el-icon><component :is="'Reading'"></component></el-icon><span>桂电资讯</span></el-menu-item>
+                <el-menu-item index="dashboard"><el-icon><component :is="'DataBoard'"></component></el-icon><span>场馆看板</span></el-menu-item>
+                <el-menu-item index="booking"><el-icon><component :is="'Calendar'"></component></el-icon><span>选座预约</span></el-menu-item>
+                <el-menu-item index="profile"><el-icon><component :is="'User'"></component></el-icon><span>个人中心</span></el-menu-item>
+                <el-menu-item index="feedback"><el-icon><component :is="'ChatDotSquare'"></component></el-icon><span>意见反馈</span></el-menu-item>
+                <el-menu-item index="admin" v-if="user.role === 'admin'" style="margin-top: 20px; border-top: 1px solid #f1f5f9; padding-top: 10px;"><el-icon><component :is="'Setting'"></component></el-icon><span>后台管理</span></el-menu-item>
+            </el-menu>
+            <div class="sidebar-footer">
+                <div class="bg-slate-50 border rounded-xl p-4 border-slate-100"><div class="flex justify-between items-center mb-2"><span class="text-[10px] font-bold text-slate-400 uppercase tracking-tight">座位使用率</span><span class="text-[10px] text-emerald-500 font-bold">{{ occupancy.occupied }}/{{ occupancy.total }} ({{ occupancy.percent }}%)</span></div><el-progress :percentage="occupancy.percent" :stroke-width="6" color="#10b981" :show-text="false"></el-progress></div>
+            </div>
+        </el-aside>
 
-            <el-main class="main-content">
-                <div class="flex justify-between items-end mb-8">
-                    <div>
-                        <p class="text-xs font-bold text-emerald-600 uppercase tracking-widest mb-1 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>{{ user.role === 'admin' ? 'Administrator Access' : 'System Operational' }}</p>
-                        <h2 class="text-3xl font-bold text-slate-800">{{ pageTitle }}</h2>
-                    </div>
-                    <div class="flex items-center gap-4">
-                        <el-popover placement="bottom" :width="300" trigger="click" @show="fetchMessages">
-                            <template #reference>
-                                <div class="relative cursor-pointer p-2 rounded-full hover:bg-slate-100 transition-colors">
-                                    <el-icon size="20" class="text-slate-500"><component :is="'Bell'"></component></el-icon>
-                                    <span v-if="unreadCount > 0" class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-                                </div>
-                            </template>
-                            <div class="p-2">
-                                <div class="flex justify-between items-center mb-3">
-                                    <h3 class="font-bold text-slate-800 text-sm m-0">站内消息</h3>
-                                    <span v-if="unreadCount > 0" @click="markAllRead" class="text-[10px] text-emerald-600 cursor-pointer hover:text-emerald-700 font-bold bg-emerald-50 px-2 py-1 rounded transition-colors hover:bg-emerald-100">一键已读</span>
-                                </div>
-                                <div v-if="messages.length === 0" class="text-center py-4 text-xs text-slate-400">暂无消息</div>
-                                <div class="max-h-64 overflow-y-auto">
-                                    <div v-for="msg in messages" :key="msg.id" class="notification-item" :class="{ 'unread': !msg.isRead }" @click="readMessage(msg)">
-                                        <div class="flex justify-between mb-1">
-                                            <span class="font-bold text-xs text-slate-700">{{ msg.title }}</span>
-                                            <span class="text-[10px] text-slate-400">{{ msg.createTime ? msg.createTime.substring(5,16) : '' }}</span>
-                                        </div>
-                                        <p class="text-xs text-slate-500 line-clamp-2">{{ msg.content }}</p>
+        <el-main class="main-content">
+            <div class="flex justify-between items-end mb-8">
+                <div>
+                    <p class="text-xs font-bold text-emerald-600 uppercase tracking-widest mb-1 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>{{ user.role === 'admin' ? 'Administrator Access' : 'System Operational' }}</p>
+                    <h2 class="text-3xl font-bold text-slate-800">{{ pageTitle }}</h2>
+                </div>
+                <div class="flex items-center gap-4">
+                    <el-popover placement="bottom" :width="300" trigger="click" @show="fetchMessages">
+                        <template #reference>
+                            <div class="relative cursor-pointer p-2 rounded-full hover:bg-slate-100 transition-colors">
+                                <el-icon size="20" class="text-slate-500"><component :is="'Bell'"></component></el-icon>
+                                <span v-if="unreadCount > 0" class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+                            </div>
+                        </template>
+                        <div class="p-2">
+                            <div class="flex justify-between items-center mb-3">
+                                <h3 class="font-bold text-slate-800 text-sm m-0">站内消息</h3>
+                                <span v-if="unreadCount > 0" @click="markAllRead" class="text-[10px] text-emerald-600 cursor-pointer hover:text-emerald-700 font-bold bg-emerald-50 px-2 py-1 rounded transition-colors hover:bg-emerald-100">一键已读</span>
+                            </div>
+                            <div v-if="messages.length === 0" class="text-center py-4 text-xs text-slate-400">暂无消息</div>
+                            <div class="max-h-64 overflow-y-auto">
+                                <div v-for="msg in messages" :key="msg.id" class="notification-item" :class="{ 'unread': !msg.isRead }" @click="readMessage(msg)">
+                                    <div class="flex justify-between mb-1">
+                                        <span class="font-bold text-xs text-slate-700">{{ msg.title }}</span>
+                                        <span class="text-[10px] text-slate-400">{{ msg.createTime ? msg.createTime.substring(5,16) : '' }}</span>
                                     </div>
+                                    <p class="text-xs text-slate-500 line-clamp-2">{{ msg.content }}</p>
                                 </div>
-                            </div>
-                        </el-popover>
-                        
-                        <el-tooltip :content="myReservation?.status === 0 ? '点击立即签到' : '点击签退/释放'" placement="bottom" v-if="myReservation">
-                            <div @click="handleHeaderAction" :class="['hidden md:flex items-center gap-3 px-4 py-2 rounded-full border shadow-sm cursor-pointer hover:shadow-md transition-all group', myReservation.status === 0 ? 'bg-blue-50 border-blue-100 hover:bg-blue-100' : 'bg-emerald-50 border-emerald-100 hover:bg-red-50 hover:border-red-100']">
-                                <div class="flex flex-col items-end">
-                                    <span :class="['text-[10px] font-bold uppercase', myReservation.status === 0 ? 'text-blue-600' : 'text-emerald-600 group-hover:text-red-500']">{{ myReservation.status === 0 ? '待签到' : '使用中' }}</span>
-                                    <span :class="['text-sm font-black leading-none', myReservation.status === 0 ? 'text-blue-800' : 'text-slate-800 group-hover:text-red-600']">{{ myReservation.seatNumber }}</span>
-                                </div>
-                                <div :class="['w-8 h-8 rounded-full flex items-center justify-center', myReservation.status === 0 ? 'bg-blue-100 text-blue-600' : 'bg-emerald-100 text-emerald-600 group-hover:bg-red-100 group-hover:text-red-500']">
-                                    <el-icon><component :is="myReservation.status === 0 ? 'Location' : 'Timer'"></component></el-icon>
-                                </div>
-                            </div>
-                        </el-tooltip>
-                        
-                        <el-dropdown trigger="click" @command="handleUserCommand" class="user-dropdown">
-                            <div class="bg-white pl-4 pr-2 py-1.5 rounded-full border border-slate-200/60 flex items-center gap-3 shadow-sm cursor-pointer hover:shadow-md transition-all">
-                                <div class="text-right mr-1">
-                                    <p class="text-xs font-bold text-slate-700 leading-tight">{{ user.realName || '未登录' }}</p>
-                                    <p class="text-[10px] text-slate-400 font-mono">{{ user.username || 'Guest' }}</p>
-                                </div>
-                                <el-avatar :size="32" :src="user.avatar" class="border-2 border-white shadow-sm"></el-avatar>
-                                <el-icon class="text-slate-400 mr-2"><component :is="'CaretBottom'"></component></el-icon>
-                            </div>
-                            <template #dropdown>
-                                <el-dropdown-menu>
-                                    <el-dropdown-item command="profile" icon="User">个人中心</el-dropdown-item>
-                                    <el-dropdown-item divided command="logout" icon="SwitchButton" class="text-red-500">退出登录</el-dropdown-item>
-                                </el-dropdown-menu>
-                            </template>
-                        </el-dropdown>
-                    </div>
-                </div>
-
-                <div v-if="activeMenu === 'dashboard'" class="space-y-6 animate-fade-in">
-                    <el-row :gutter="24">
-                        <el-col :span="16"><el-card class="clean-card" shadow="never"><template #header><div class="flex justify-between items-center"><span class="text-base font-bold text-slate-700">全馆座位热力分布</span><el-tag size="small" type="success">实时</el-tag></div></template><div id="heatmapChart" style="height:320px; width:100%;"></div></el-card></el-col>
-                        <el-col :span="8"><el-card class="clean-card" shadow="never"><template #header><span class="text-base font-bold text-slate-700">校园公告</span></template><div class="space-y-4"><div v-for="(news, idx) in campusNews" :key="idx" class="border-b border-slate-50 pb-3 last:border-none"><div class="flex items-center justify-between mb-1"><el-tag size="small" :type="news.type" effect="plain" round>{{ news.tag }}</el-tag><span class="text-[10px] text-slate-300 font-mono">{{ news.time }}</span></div><p class="text-sm font-medium text-slate-600">{{ news.title }}</p></div></div></el-card></el-col>
-                    </el-row>
-                    <el-row :gutter="20">
-                        <el-col :span="12"><el-card class="clean-card" shadow="never"><template #header><span class="text-sm font-bold">今日区域饱和度</span></template><div id="compareChart" style="height:250px; width:100%;"></div></el-card></el-col>
-                        <el-col :span="12"><el-card class="clean-card" shadow="never"><template #header><span class="text-sm font-bold">实时进出动态</span></template><div class="px-2"><div v-for="log in liveLogs" :key="log.id" class="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors"><el-avatar :size="28" :src="log.avatar"></el-avatar><div class="flex-grow"><p class="text-xs"><span class="font-bold text-slate-700">{{ log.name }}</span> <span class="text-slate-400 mx-1">在</span> <span class="font-bold text-emerald-600">{{ log.location }}</span> <span class="text-slate-400 mx-1">{{ log.action }}</span></p></div><span class="text-[10px] text-slate-300 font-mono">{{ log.time }}</span></div></div></el-card></el-col>
-                    </el-row>
-                </div>
-
-                <div v-if="activeMenu === 'news'" class="animate-fade-in max-w-6xl mx-auto">
-                    <div class="mb-6"><h3 class="text-xl font-bold text-slate-800">今日头条</h3></div>
-                    <div class="news-hero-container mb-12">
-                        <div class="news-big-card" v-if="newsData.length > 0" @click="viewNews(newsData[0])">
-                            <img :src="newsData[0].coverImage" class="news-big-img" onerror="this.src='https://placehold.co/600x400?text=News'">
-                            <div class="news-overlay">
-                                <span class="bg-emerald-600 text-white text-xs px-2 py-1 rounded font-bold mb-2 inline-block">置顶</span>
-                                <h3 class="text-2xl font-bold mb-2">{{ newsData[0].title }}</h3>
-                                <p class="text-slate-200 text-sm line-clamp-2">{{ newsData[0].summary }}</p>
-                                <p class="text-xs text-slate-400 mt-4">{{ newsData[0].publishDate?.substring(0,10) }}</p>
                             </div>
                         </div>
-                        <div v-else class="news-big-card bg-slate-200 flex items-center justify-center text-slate-400">暂无新闻</div>
-                        <div class="news-small-col"><div class="news-small-card" v-for="n in newsData.slice(1,3)" :key="n.id" @click="viewNews(n)"><img :src="n.coverImage" class="news-small-img" onerror="this.src='https://placehold.co/200x200?text=News'"><div class="news-small-content"><h4 class="font-bold text-slate-800 mb-2 line-clamp-2">{{ n.title }}</h4><p class="text-xs text-slate-500 mb-3">{{ n.publishDate?.substring(0,10) }}</p><p class="text-xs text-slate-400 line-clamp-2">{{ n.summary }}</p></div></div></div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"><div v-for="n in newsData.slice(3)" :key="n.id" class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-md transition-all cursor-pointer" @click="viewNews(n)"><div class="h-40 overflow-hidden"><img :src="n.coverImage" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/400x300?text=News'"></div><div class="p-4"><h4 class="font-bold text-slate-800 text-sm mb-2 line-clamp-1">{{ n.title }}</h4><p class="text-xs text-slate-400 mb-2">{{ n.publishDate?.substring(0,10) }}</p><p class="text-xs text-slate-500 line-clamp-2">{{ n.summary }}</p></div></div></div>
-                </div>
+                    </el-popover>
 
-                <div v-if="activeMenu === 'booking'" class="space-y-6">
-                    <el-row :gutter="24">
-                        <el-col :span="17"><div class="seat-map-wrapper">
-                            
-                            <div class="flex justify-between items-end mb-8">
-                                <div class="flex flex-col gap-4">
-                                    <div class="flex items-center gap-4"><span class="text-xs font-bold text-slate-400 w-12 pt-1">FLOOR</span><div class="flex gap-3"><div v-for="f in [1,2,3,4,5]" :key="f" :class="['filter-btn', currentFloor === f ? 'active' : '']" @click="currentFloor = f; refreshSeats()">{{ f }}F</div></div></div>
-                                    <div class="flex items-center gap-4"><span class="text-xs font-bold text-slate-400 w-12 pt-1">ZONE</span><div class="flex gap-3"><div v-for="z in ['东A区', '西B区', '北C区']" :key="z" :class="['filter-btn', currentZone === z ? 'active' : '']" @click="currentZone = z; refreshSeats()">{{ z }}</div></div></div>
-                                </div>
-                                <div class="flex flex-col items-end gap-3">
-                                    <div class="flex items-center gap-4 bg-slate-50 px-4 py-2 rounded-xl border border-slate-100 shadow-sm">
-                                        <div class="flex items-center gap-2">
+                    <div v-if="myReservation"
+                         @click="handleHeaderAction"
+                         class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full border shadow-sm cursor-pointer hover:shadow-md transition-all group"
+                         :class="myReservation.status === 0 ? (timeState === 'URGENT' ? 'bg-red-50 border-red-200 animate-pulse' : 'bg-blue-50 border-blue-100 hover:bg-blue-200') : (timeState === 'URGENT' ? 'bg-orange-50 border-orange-200 hover:bg-orange-100' : 'bg-emerald-50 border-emerald-100 hover:bg-red-50 hover:border-red-200')">
+
+                        <div class="flex flex-col items-end">
+                            <span class="text-[9px] font-bold uppercase tracking-widest transition-colors"
+                                  :class="myReservation.status === 0 ? (timeState === 'URGENT' ? 'text-red-600' : 'text-blue-600') : (timeState === 'URGENT' ? 'text-orange-600 group-hover:text-red-500' : 'text-emerald-600 group-hover:text-red-500')">
+                                {{ myReservation.status === 0 ? (timeState === 'URGENT' ? '紧急签到' : '待签到') : '使用中' }}
+                            </span>
+                            <span class="text-sm font-black leading-none flex items-center gap-1.5 transition-colors"
+                                  :class="myReservation.status === 0 ? (timeState === 'URGENT' ? 'text-red-700' : 'text-blue-800') : 'text-slate-800 group-hover:text-red-600'">
+                                {{ myReservation.seatNumber }}
+                                <span class="text-[10px] font-mono bg-white/60 px-1 py-0.5 rounded leading-none transition-colors"
+                                      :class="timeState === 'URGENT' ? 'text-red-600' : 'text-slate-600'">
+                                    {{ countdownText }}
+                                </span>
+                            </span>
+                        </div>
+
+                        <div v-if="myReservation.status === 1" @click.stop="handleExtend"
+                             class="px-2 py-0.5 rounded text-[10px] font-bold bg-white shadow-sm border border-emerald-100 text-emerald-600 hover:bg-emerald-500 hover:text-white transition-colors ml-1"
+                             title="点击延长1小时">
+                            续签
+                        </div>
+
+                        <div class="w-7 h-7 rounded-full flex items-center justify-center transition-all ml-1 group-hover:scale-110"
+                             :class="myReservation.status === 0 ? (timeState === 'URGENT' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600') : 'bg-emerald-100 text-emerald-600 group-hover:bg-red-100 group-hover:text-red-600'">
+                            <el-icon><component :is="myReservation.status === 0 ? (timeState === 'URGENT' ? 'WarningFilled' : 'Location') : (timeState === 'URGENT' ? 'Timer' : 'SwitchButton')"></component></el-icon>
+                        </div>
+                    </div>
+
+                    <el-dropdown trigger="click" @command="handleUserCommand" class="user-dropdown">
+                        <div class="bg-white pl-4 pr-2 py-1.5 rounded-full border border-slate-200/60 flex items-center gap-3 shadow-sm cursor-pointer hover:shadow-md transition-all">
+                            <div class="text-right mr-1">
+                                <p class="text-xs font-bold text-slate-700 leading-tight">{{ user.realName || '未登录' }}</p>
+                                <p class="text-[10px] text-slate-400 font-mono">{{ user.username || 'Guest' }}</p>
+                            </div>
+                            <el-avatar :size="32" :src="user.avatar" class="border-2 border-white shadow-sm"></el-avatar>
+                            <el-icon class="text-slate-400 mr-2"><component :is="'CaretBottom'"></component></el-icon>
+                        </div>
+                        <template #dropdown>
+                            <el-dropdown-menu>
+                                <el-dropdown-item command="profile" icon="User">个人中心</el-dropdown-item>
+                                <el-dropdown-item divided command="logout" icon="SwitchButton" class="text-red-500">退出登录</el-dropdown-item>
+                            </el-dropdown-menu>
+                        </template>
+                    </el-dropdown>
+                </div>
+            </div>
+
+            <div v-if="activeMenu === 'dashboard'" class="space-y-6 animate-fade-in">
+                <el-row :gutter="24">
+                    <el-col :span="16"><el-card class="clean-card" shadow="never"><template #header><div class="flex justify-between items-center"><span class="text-base font-bold text-slate-700">全馆座位热力分布</span><el-tag size="small" type="success">实时</el-tag></div></template><div id="heatmapChart" style="height:320px; width:100%;"></div></el-card></el-col>
+                    <el-col :span="8"><el-card class="clean-card" shadow="never"><template #header><span class="text-base font-bold text-slate-700">校园公告</span></template><div class="space-y-4"><div v-for="(news, idx) in campusNews" :key="idx" class="border-b border-slate-50 pb-3 last:border-none"><div class="flex items-center justify-between mb-1"><el-tag size="small" :type="news.type" effect="plain" round>{{ news.tag }}</el-tag><span class="text-[10px] text-slate-300 font-mono">{{ news.time }}</span></div><p class="text-sm font-medium text-slate-600">{{ news.title }}</p></div></div></el-card></el-col>
+                </el-row>
+                <el-row :gutter="20">
+                    <el-col :span="12"><el-card class="clean-card" shadow="never"><template #header><span class="text-sm font-bold">今日区域饱和度</span></template><div id="compareChart" style="height:250px; width:100%;"></div></el-card></el-col>
+                    <el-col :span="12"><el-card class="clean-card" shadow="never"><template #header><span class="text-sm font-bold">实时进出动态</span></template><div class="px-2"><div v-for="log in liveLogs" :key="log.id" class="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors"><el-avatar :size="28" :src="log.avatar"></el-avatar><div class="flex-grow"><p class="text-xs"><span class="font-bold text-slate-700">{{ log.name }}</span> <span class="text-slate-400 mx-1">在</span> <span class="font-bold text-emerald-600">{{ log.location }}</span> <span class="text-slate-400 mx-1">{{ log.action }}</span></p></div><span class="text-[10px] text-slate-300 font-mono">{{ log.time }}</span></div></div></el-card></el-col>
+                </el-row>
+            </div>
+
+            <div v-if="activeMenu === 'news'" class="animate-fade-in max-w-6xl mx-auto">
+                <div class="mb-6"><h3 class="text-xl font-bold text-slate-800">今日头条</h3></div>
+                <div class="news-hero-container mb-12">
+                    <div class="news-big-card" v-if="newsData.length > 0" @click="viewNews(newsData[0])">
+                        <img :src="newsData[0].coverImage" class="news-big-img" onerror="this.src='https://placehold.co/600x400?text=News'">
+                        <div class="news-overlay">
+                            <span class="bg-emerald-600 text-white text-xs px-2 py-1 rounded font-bold mb-2 inline-block">置顶</span>
+                            <h3 class="text-2xl font-bold mb-2">{{ newsData[0].title }}</h3>
+                            <p class="text-slate-200 text-sm line-clamp-2">{{ newsData[0].summary }}</p>
+                            <p class="text-xs text-slate-400 mt-4">{{ newsData[0].publishDate?.substring(0,10) }}</p>
+                        </div>
+                    </div>
+                    <div v-else class="news-big-card bg-slate-200 flex items-center justify-center text-slate-400">暂无新闻</div>
+                    <div class="news-small-col"><div class="news-small-card" v-for="n in newsData.slice(1,3)" :key="n.id" @click="viewNews(n)"><img :src="n.coverImage" class="news-small-img" onerror="this.src='https://placehold.co/200x200?text=News'"><div class="news-small-content"><h4 class="font-bold text-slate-800 mb-2 line-clamp-2">{{ n.title }}</h4><p class="text-xs text-slate-500 mb-3">{{ n.publishDate?.substring(0,10) }}</p><p class="text-xs text-slate-400 line-clamp-2">{{ n.summary }}</p></div></div></div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"><div v-for="n in newsData.slice(3)" :key="n.id" class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-md transition-all cursor-pointer" @click="viewNews(n)"><div class="h-40 overflow-hidden"><img :src="n.coverImage" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/400x300?text=News'"></div><div class="p-4"><h4 class="font-bold text-slate-800 text-sm mb-2 line-clamp-1">{{ n.title }}</h4><p class="text-xs text-slate-400 mb-2">{{ n.publishDate?.substring(0,10) }}</p><p class="text-xs text-slate-500 line-clamp-2">{{ n.summary }}</p></div></div></div>
+            </div>
+
+            <div v-if="activeMenu === 'booking'" class="space-y-6">
+                <el-row :gutter="24">
+                    <el-col :span="17"><div class="seat-map-wrapper">
+
+                        <div class="flex justify-between items-end mb-8">
+                            <div class="flex flex-col gap-4">
+                                <div class="flex items-center gap-4"><span class="text-xs font-bold text-slate-400 w-12 pt-1">FLOOR</span><div class="flex gap-3"><div v-for="f in [1,2,3,4,5]" :key="f" :class="['filter-btn', currentFloor === f ? 'active' : '']" @click="currentFloor = f; refreshSeats()">{{ f }}F</div></div></div>
+                                <div class="flex items-center gap-4"><span class="text-xs font-bold text-slate-400 w-12 pt-1">ZONE</span><div class="flex gap-3"><div v-for="z in ['东A区', '西B区', '北C区']" :key="z" :class="['filter-btn', currentZone === z ? 'active' : '']" @click="currentZone = z; refreshSeats()">{{ z }}</div></div></div>
+                            </div>
+                            <div class="flex flex-col items-end gap-3">
+                                <div class="flex items-center gap-4 bg-slate-50 px-4 py-2 rounded-xl border border-slate-100 shadow-sm">
+                                    <div class="flex items-center gap-2">
                                             <span class="text-xs font-bold text-slate-600 flex items-center gap-1">
                                                 带插座 <el-icon class="text-emerald-500 text-sm"><component :is="'Lightning'"></component></el-icon>
                                             </span>
-                                            <el-switch v-model="filterHasSocket" size="small" style="--el-switch-on-color: #10b981;"></el-switch>
-                                        </div>
-                                        <div class="flex items-center gap-2 border-l border-slate-200 pl-4">
+                                        <el-switch v-model="filterHasSocket" size="small" style="--el-switch-on-color: #10b981;"></el-switch>
+                                    </div>
+                                    <div class="flex items-center gap-2 border-l border-slate-200 pl-4">
                                             <span class="text-xs font-bold text-slate-600 flex items-center gap-1">
-                                                靠窗位 
+                                                靠窗位
                                                 <svg class="w-3.5 h-3.5 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="12" x2="21" y2="12"></line><line x1="12" y1="3" x2="12" y2="21"></line></svg>
                                             </span>
-                                            <el-switch v-model="filterIsWindow" size="small" style="--el-switch-on-color: #3b82f6;"></el-switch>
-                                        </div>
-                                    </div>
-                                    <div class="flex gap-4 text-[10px] text-slate-400 font-bold uppercase pb-1">
-                                        <span class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-slate-100 border"></span> Occupied</span>
-                                        <span class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-emerald-500"></span> Mine</span>
-                                        <span class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-white border border-emerald-200"></span> Free</span>
-                                        <span class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-orange-100 border border-orange-300"></span> Repair</span>
+                                        <el-switch v-model="filterIsWindow" size="small" style="--el-switch-on-color: #3b82f6;"></el-switch>
                                     </div>
                                 </div>
-                            </div>
-                            
-                            <div class="seat-grid relative" v-loading="loadingSeats">
-                                <div v-for="seat in displaySeats" :key="seat.id" 
-                                     :class="['seat', getSeatClass(seat), selectedSeatId === seat.id ? 'selected' : '', seat.status === 2 ? 'maintenance' : '', seat._hiddenByFilter ? 'opacity-20 !cursor-not-allowed !bg-slate-50 !border-slate-100 !text-slate-300 !shadow-none scale-95' : '']" 
-                                     @click="!seat._hiddenByFilter && handleSeatClick(seat)">
-                                    
-                                    <span class="text-[11px] font-bold font-mono mb-2">{{ seat.seatNumber }}</span>
-                                    <el-icon v-if="seat.hasSocket" class="absolute bottom-1.5 left-1.5 text-[12px] text-emerald-500 opacity-80"><component :is="'Lightning'"></component></el-icon>
-                                    <span v-if="seat.status === 2" class="absolute bottom-1 left-1/2 -translate-x-1/2 text-[9px] font-black text-orange-500 uppercase tracking-tighter">维修</span>
-                                    <svg v-if="seat._isWindowMock" class="absolute bottom-1.5 right-1.5 w-3 h-3 text-blue-400 opacity-80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="12" x2="21" y2="12"></line><line x1="12" y1="3" x2="12" y2="21"></line></svg>
+                                <div class="flex gap-4 text-[10px] text-slate-400 font-bold uppercase pb-1">
+                                    <span class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-slate-100 border"></span> Occupied</span>
+                                    <span class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-emerald-500"></span> Mine</span>
+                                    <span class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-white border border-emerald-200"></span> Free</span>
+                                    <span class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-orange-100 border border-orange-300"></span> Repair</span>
                                 </div>
                             </div>
-                            <div v-if="seats.length === 0 && !loadingSeats" class="text-center py-20 text-slate-400">暂无数据</div>
-                        </div></el-col>
-                        <el-col :span="7"><el-card class="clean-card flex flex-col h-full" shadow="never"><div class="p-6 border-b border-slate-50"><span class="text-base font-bold text-slate-700">选座详情</span></div><div v-if="selectedSeat" class="p-6 text-center flex-grow flex flex-col"><div :class="['w-20 h-20 rounded-2xl mx-auto flex items-center justify-center mb-6 shadow-xl', isMySeat(selectedSeat) ? 'bg-emerald-500 text-white' : 'bg-white border text-slate-300']"><el-icon size="36"><component :is="'Stamp'"></component></el-icon></div><h4 class="text-3xl font-black text-slate-800 mb-1">{{ selectedSeat.seatNumber }}</h4><el-tag size="small" type="info" class="mb-8 mx-auto">{{ currentFloor }}F {{ currentZone }}</el-tag><div class="mt-auto"><div v-if="!isMySeat(selectedSeat) && selectedSeat.status === 0" class="mb-6 text-left bg-slate-50 p-4 rounded-xl border border-slate-100"><p class="text-xs font-bold text-slate-500 mb-3">选择时间</p><div class="flex flex-col gap-2"><el-time-select v-model="bookingForm.startTime" :min-time="limitTime" start="08:00" step="00:30" end="22:00" placeholder="开始" class="!w-full"></el-time-select><el-time-select v-model="bookingForm.endTime" :min-time="bookingForm.startTime" start="08:00" step="00:30" end="22:00" placeholder="结束" class="!w-full"></el-time-select></div></div><el-button v-if="selectedSeat.status === 2" type="warning" disabled class="w-full !h-12 !rounded-xl">该座位维护中</el-button><el-button v-else-if="isMySeat(selectedSeat)" type="danger" class="w-full !h-12 !rounded-xl" @click="handleCancel" :loading="bookingLoading">退座</el-button><el-button v-else type="primary" class="w-full !h-12 !bg-slate-900 !rounded-xl border-none" @click="confirmBooking" :loading="bookingLoading">确认预约</el-button></div></div><div v-else class="p-6 flex-grow flex items-center justify-center text-slate-400 text-sm">请先选择座位</div></el-card></el-col>
-                    </el-row>
-                </div>
+                        </div>
 
-                <div v-if="activeMenu === 'profile'" class="max-w-5xl mx-auto">
-                    <el-card class="clean-card p-0 !border-none !shadow-xl" shadow="never"><div class="profile-header"><div class="absolute top-6 right-6"><el-button type="primary" class="!bg-white/20 !border-white/30 !text-white hover:!bg-white/30" round @click="openEditDialog"><el-icon class="mr-1"><component :is="'Edit'"></component></el-icon> 编辑资料</el-button></div></div><div class="px-12 pb-12"><div class="flex justify-between items-end -mt-16 mb-12 relative z-10"><div class="relative group cursor-pointer" @click="openEditDialog"><el-avatar :size="120" :src="user.avatar" class="ring-8 ring-white shadow-2xl bg-white"></el-avatar><div class="absolute inset-0 rounded-full flex items-center justify-center bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity"><el-icon class="text-white text-2xl font-bold"><component :is="'Camera'"></component></el-icon></div></div>
-                    
+                        <div class="seat-grid relative" v-loading="loadingSeats">
+                            <div v-for="seat in displaySeats" :key="seat.id"
+                                 :class="['seat', getSeatClass(seat), selectedSeatId === seat.id ? 'selected' : '', seat.status === 2 ? 'maintenance' : '', seat._hiddenByFilter ? 'opacity-20 !cursor-not-allowed !bg-slate-50 !border-slate-100 !text-slate-300 !shadow-none scale-95' : '']"
+                                 @click="!seat._hiddenByFilter && handleSeatClick(seat)">
+
+                                <span class="text-[11px] font-bold font-mono mb-2">{{ seat.seatNumber }}</span>
+                                <el-icon v-if="seat.hasSocket" class="absolute bottom-1.5 left-1.5 text-[12px] text-emerald-500 opacity-80"><component :is="'Lightning'"></component></el-icon>
+                                <span v-if="seat.status === 2" class="absolute bottom-1 left-1/2 -translate-x-1/2 text-[9px] font-black text-orange-500 uppercase tracking-tighter">维修</span>
+                                <svg v-if="seat._isWindowMock" class="absolute bottom-1.5 right-1.5 w-3 h-3 text-blue-400 opacity-80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="12" x2="21" y2="12"></line><line x1="12" y1="3" x2="12" y2="21"></line></svg>
+                            </div>
+                        </div>
+                        <div v-if="seats.length === 0 && !loadingSeats" class="text-center py-20 text-slate-400">暂无数据</div>
+                    </div></el-col>
+                    <el-col :span="7"><el-card class="clean-card flex flex-col h-full" shadow="never"><div class="p-6 border-b border-slate-50"><span class="text-base font-bold text-slate-700">选座详情</span></div><div v-if="selectedSeat" class="p-6 text-center flex-grow flex flex-col"><div :class="['w-20 h-20 rounded-2xl mx-auto flex items-center justify-center mb-6 shadow-xl', isMySeat(selectedSeat) ? 'bg-emerald-500 text-white' : 'bg-white border text-slate-300']"><el-icon size="36"><component :is="'Stamp'"></component></el-icon></div><h4 class="text-3xl font-black text-slate-800 mb-1">{{ selectedSeat.seatNumber }}</h4><el-tag size="small" type="info" class="mb-8 mx-auto">{{ currentFloor }}F {{ currentZone }}</el-tag><div class="mt-auto"><div v-if="!isMySeat(selectedSeat) && selectedSeat.status === 0" class="mb-6 text-left bg-slate-50 p-4 rounded-xl border border-slate-100"><p class="text-xs font-bold text-slate-500 mb-3">选择时间</p><div class="flex flex-col gap-2"><el-time-select v-model="bookingForm.startTime" :min-time="limitTime" start="08:00" step="00:30" end="22:00" placeholder="开始" class="!w-full"></el-time-select><el-time-select v-model="bookingForm.endTime" :min-time="bookingForm.startTime" start="08:00" step="00:30" end="22:00" placeholder="结束" class="!w-full"></el-time-select></div></div><el-button v-if="selectedSeat.status === 2" type="warning" disabled class="w-full !h-12 !rounded-xl">该座位维护中</el-button><el-button v-else-if="isMySeat(selectedSeat)" type="danger" class="w-full !h-12 !rounded-xl" @click="handleCancel" :loading="bookingLoading">退座</el-button><el-button v-else type="primary" class="w-full !h-12 !bg-slate-900 !rounded-xl border-none" @click="confirmBooking" :loading="bookingLoading">确认预约</el-button></div></div><div v-else class="p-6 flex-grow flex items-center justify-center text-slate-400 text-sm">请先选择座位</div></el-card></el-col>
+                </el-row>
+            </div>
+
+            <div v-if="activeMenu === 'profile'" class="max-w-5xl mx-auto">
+                <el-card class="clean-card p-0 !border-none !shadow-xl" shadow="never"><div class="profile-header"><div class="absolute top-6 right-6"><el-button type="primary" class="!bg-white/20 !border-white/30 !text-white hover:!bg-white/30" round @click="openEditDialog"><el-icon class="mr-1"><component :is="'Edit'"></component></el-icon> 编辑资料</el-button></div></div><div class="px-12 pb-12"><div class="flex justify-between items-end -mt-16 mb-12 relative z-10"><div class="relative group cursor-pointer" @click="openEditDialog"><el-avatar :size="120" :src="user.avatar" class="ring-8 ring-white shadow-2xl bg-white"></el-avatar><div class="absolute inset-0 rounded-full flex items-center justify-center bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity"><el-icon class="text-white text-2xl font-bold"><component :is="'Camera'"></component></el-icon></div></div>
+
                     <div class="bg-slate-50 px-6 py-3 rounded-2xl border text-center relative group">
                         <p class="text-[10px] font-bold text-slate-400 uppercase">Score</p>
                         <p class="text-xl font-black text-slate-800">{{ user.creditScore }}</p>
@@ -258,773 +285,858 @@
                             <span class="text-xs font-bold text-emerald-600 bg-white/90 px-3 py-1 rounded shadow-sm">查看明细</span>
                         </div>
                     </div>
-                    </div><div class="grid grid-cols-1 md:grid-cols-3 gap-12"><div class="md:col-span-1 space-y-6"><div :class="['p-6 rounded-3xl border', myReservation ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-dashed']"><p class="text-xs font-bold text-slate-500 uppercase mb-4">Current Session</p><div v-if="myReservation"><div class="flex items-center gap-4 mb-6"><div class="h-12 px-4 bg-white rounded-2xl flex items-center justify-center text-emerald-600 font-black text-lg shadow-sm">{{ myReservation.seatNumber }}</div><div><p class="text-xs text-emerald-700 font-bold">使用中</p></div></div><el-button type="danger" class="w-full !rounded-xl" @click="handleCancelFromProfile" :loading="bookingLoading">退座</el-button></div><div v-else class="text-center py-6"><el-button type="primary" link @click="activeMenu = 'booking'">去预约</el-button></div></div></div><div class="md:col-span-2"><div class="bg-slate-50 rounded-3xl p-8 grid grid-cols-2 gap-y-8 gap-x-12"><div><p class="text-xs text-slate-400 mb-1">姓名</p><p class="text-base font-bold text-slate-800">{{ user.realName || '-' }}</p></div><div><p class="text-xs text-slate-400 mb-1">学号</p><p class="text-base font-bold text-slate-800 font-mono">{{ user.username || '-' }}</p></div><div><p class="text-xs text-slate-400 mb-1">学院</p><p class="text-base font-bold text-slate-800">{{ user.college || '未设置' }}</p></div><div><p class="text-xs text-slate-400 mb-1">专业</p><p class="text-base font-bold text-slate-800">{{ user.major || '未设置' }}</p></div><div><p class="text-xs text-slate-400 mb-1">上次入馆</p><p class="text-base font-bold text-slate-800 font-mono">{{ user.lastLoginTime ? user.lastLoginTime.replace('T', ' ').substring(0,16) : '暂无记录' }}</p></div></div></div></div></div></el-card>
-                </div>
+                </div><div class="grid grid-cols-1 md:grid-cols-3 gap-12"><div class="md:col-span-1 space-y-6"><div :class="['p-6 rounded-3xl border', myReservation ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-dashed']"><p class="text-xs font-bold text-slate-500 uppercase mb-4">Current Session</p><div v-if="myReservation"><div class="flex items-center gap-4 mb-6"><div class="h-12 px-4 bg-white rounded-2xl flex items-center justify-center text-emerald-600 font-black text-lg shadow-sm">{{ myReservation.seatNumber }}</div><div><p class="text-xs text-emerald-700 font-bold">{{ myReservation.status === 0 ? '待签到' : '使用中' }}</p></div></div><el-button type="danger" class="w-full !rounded-xl" @click="handleCancelFromProfile" :loading="bookingLoading">退座</el-button></div><div v-else class="text-center py-6"><el-button type="primary" link @click="activeMenu = 'booking'">去预约</el-button></div></div></div><div class="md:col-span-2"><div class="bg-slate-50 rounded-3xl p-8 grid grid-cols-2 gap-y-8 gap-x-12"><div><p class="text-xs text-slate-400 mb-1">姓名</p><p class="text-base font-bold text-slate-800">{{ user.realName || '-' }}</p></div><div><p class="text-xs text-slate-400 mb-1">学号</p><p class="text-base font-bold text-slate-800 font-mono">{{ user.username || '-' }}</p></div><div><p class="text-xs text-slate-400 mb-1">学院</p><p class="text-base font-bold text-slate-800">{{ user.college || '未设置' }}</p></div><div><p class="text-xs text-slate-400 mb-1">专业</p><p class="text-base font-bold text-slate-800">{{ user.major || '未设置' }}</p></div><div><p class="text-xs text-slate-400 mb-1">上次入馆</p><p class="text-base font-bold text-slate-800 font-mono">{{ user.lastLoginTime ? user.lastLoginTime.replace('T', ' ').substring(0,16) : '暂无记录' }}</p></div></div></div></div></div></el-card>
+            </div>
 
-                <div v-if="activeMenu === 'feedback'" class="max-w-6xl mx-auto space-y-6 animate-fade-in">
-                    <el-row :gutter="24">
-                        <el-col :span="10">
-                            <el-card class="clean-card" shadow="never">
-                                <template #header><span class="font-bold text-slate-700">提交新反馈</span></template>
-                                <el-form label-position="top">
-                                    <el-form-item label="问题类型">
-                                        <el-select v-model="feedbackForm.type" class="w-full">
-                                            <el-option label="功能建议" value="功能建议"></el-option>
-                                            <el-option label="系统BUG" value="系统BUG"></el-option>
-                                            <el-option label="场馆投诉" value="场馆投诉"></el-option>
-                                            <el-option label="其他问题" value="其他"></el-option>
+            <div v-if="activeMenu === 'feedback'" class="max-w-6xl mx-auto space-y-6 animate-fade-in">
+                <el-row :gutter="24">
+                    <el-col :span="10">
+                        <el-card class="clean-card" shadow="never">
+                            <template #header><span class="font-bold text-slate-700">提交新反馈</span></template>
+                            <el-form label-position="top">
+                                <el-form-item label="问题类型">
+                                    <el-select v-model="feedbackForm.type" class="w-full">
+                                        <el-option label="功能建议" value="功能建议"></el-option>
+                                        <el-option label="系统BUG" value="系统BUG"></el-option>
+                                        <el-option label="场馆投诉" value="场馆投诉"></el-option>
+                                        <el-option label="其他问题" value="其他"></el-option>
+                                    </el-select>
+                                </el-form-item>
+                                <el-form-item label="详细描述">
+                                    <el-input type="textarea" v-model="feedbackForm.content" :rows="6" placeholder="请详细描述您遇到的问题或建议..."></el-input>
+                                </el-form-item>
+                                <el-button type="primary" class="w-full !rounded-xl" @click="submitFeedback" :loading="feedbackLoading">提交反馈</el-button>
+                            </el-form>
+                        </el-card>
+                    </el-col>
+                    <el-col :span="14">
+                        <el-card class="clean-card h-full" shadow="never">
+                            <template #header><span class="font-bold text-slate-700">我的历史反馈</span></template>
+                            <div class="space-y-4 max-h-[450px] overflow-y-auto pr-2">
+                                <div v-for="f in myFeedbacks" :key="f.id" class="p-4 bg-slate-50 rounded-xl border border-slate-100 relative">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <el-tag size="small" :type="f.type==='系统BUG'?'danger':(f.type==='场馆投诉'?'warning':'info')">{{f.type}}</el-tag>
+                                        <span class="text-xs text-slate-400 font-mono">{{f.createTime?.replace('T',' ').substring(0,16)}}</span>
+                                    </div>
+                                    <p class="text-sm text-slate-700 mb-3">{{f.content}}</p>
+                                    <div v-if="f.status === 1" class="bg-emerald-50 text-emerald-700 p-3 rounded-lg text-sm border border-emerald-100">
+                                        <span class="font-bold text-emerald-800">管理员回复：</span>{{f.reply}}
+                                    </div>
+                                    <div v-else class="text-xs text-slate-400">正在等待管理员处理...</div>
+                                    <div class="absolute top-4 right-4">
+                                        <el-tag size="small" :type="f.status === 1 ? 'success' : 'info'" effect="dark">{{f.status === 1 ? '已解决' : '待处理'}}</el-tag>
+                                    </div>
+                                </div>
+                                <div v-if="myFeedbacks.length === 0" class="text-center py-10 text-slate-400 text-sm">暂无反馈记录</div>
+                            </div>
+                        </el-card>
+                    </el-col>
+                </el-row>
+            </div>
+
+            <div v-if="activeMenu === 'admin'" class="space-y-6">
+                <el-tabs v-model="adminActiveTab" class="bg-white rounded-2xl px-6 pt-2 shadow-sm border border-slate-100" @tab-click="handleAdminTabClick">
+                    <el-tab-pane label="运营概览" name="dashboard"></el-tab-pane>
+                    <el-tab-pane label="用户管理" name="users"></el-tab-pane>
+                    <el-tab-pane label="座位管控" name="seats"></el-tab-pane>
+                    <el-tab-pane label="公告发布" name="notices"></el-tab-pane>
+                    <el-tab-pane label="新闻管理" name="newsMgr"></el-tab-pane>
+                    <el-tab-pane label="反馈处理" name="feedbacks"></el-tab-pane>
+                </el-tabs>
+                <div v-if="adminActiveTab === 'dashboard'" class="space-y-6"><div class="grid grid-cols-4 gap-6"><div class="admin-stat-card"><div class="text-xs text-slate-400 font-bold uppercase">注册用户</div><div class="text-3xl font-bold text-slate-800 mt-2">{{ adminDashboard.totalUsers || 0 }}</div></div><div class="admin-stat-card border-l-4 border-emerald-500"><div class="text-xs text-slate-400 font-bold uppercase">实时在馆</div><div class="text-3xl font-bold text-emerald-600 mt-2">{{ adminDashboard.currentOccupied || 0 }}</div></div><div class="admin-stat-card"><div class="text-xs text-slate-400 font-bold uppercase">今日预约</div><div class="text-3xl font-bold text-slate-800 mt-2">{{ adminDashboard.todayCount || 0 }}</div></div><div class="admin-stat-card border-l-4 border-red-400"><div class="text-xs text-slate-400 font-bold uppercase">违规记录</div><div class="text-3xl font-bold text-red-500 mt-2">{{ adminDashboard.violations || 0 }}</div></div></div><el-card class="clean-card" shadow="never"><template #header><div class="flex justify-between items-center"><span class="text-base font-bold text-slate-700">流量走势分析</span><el-radio-group v-model="trendType" size="small" @change="fetchTrendData"><el-radio-button label="day">今日(时)</el-radio-button><el-radio-button label="month">本月(日)</el-radio-button><el-radio-button label="year">全年(月)</el-radio-button></el-radio-group></div></template><div id="adminTrendChart" style="height:350px; width:100%;"></div></el-card></div>
+                <div v-if="adminActiveTab === 'users'" class="bg-white p-6 rounded-2xl border border-slate-100"><div class="flex justify-between mb-6"><div class="flex gap-3"><el-input v-model="adminUserSearch" placeholder="搜索学号或姓名..." prefix-icon="Search" class="w-64" clearable @clear="fetchAdminUsers" @keyup.enter="fetchAdminUsers"></el-input><el-button type="primary" color="#1e293b" @click="fetchAdminUsers">搜索</el-button></div><el-button plain type="primary" @click="fetchAdminUsers">刷新</el-button></div><el-table :data="adminUsersList" v-loading="loadingAdmin" style="width: 100%"><el-table-column prop="username" label="学号" width="130"></el-table-column><el-table-column label="姓名" width="130"><template #default="scope"><div class="flex items-center gap-3"><el-avatar :size="24" :src="scope.row.avatar"></el-avatar><span class="font-bold">{{ scope.row.realName }}</span></div></template></el-table-column><el-table-column prop="college" label="学院" width="140" show-overflow-tooltip><template #default="scope">{{ scope.row.college || '-' }}</template></el-table-column><el-table-column prop="major" label="专业" width="140" show-overflow-tooltip><template #default="scope">{{ scope.row.major || '-' }}</template></el-table-column><el-table-column prop="lastLoginTime" label="最近入馆" width="160"><template #default="scope"><span class="text-xs text-slate-500 font-mono">{{ scope.row.lastLoginTime ? scope.row.lastLoginTime.replace('T',' ').substring(0,16) : '从未' }}</span></template></el-table-column><el-table-column label="信用分" width="100"><template #default="scope"><el-tag :type="scope.row.creditScore >= 90 ? 'success' : (scope.row.creditScore < 60 ? 'danger' : 'warning')" effect="dark">{{ scope.row.creditScore }}</el-tag></template></el-table-column><el-table-column label="操作" align="right"><template #default="scope"><el-button link type="danger" @click="openCreditDialog(scope.row)">奖惩</el-button></template></el-table-column></el-table></div>
+
+                <div v-if="adminActiveTab === 'seats'" class="space-y-6">
+                    <div class="grid grid-cols-4 gap-6">
+
+                        <el-card class="clean-card" shadow="never"><template #header>资源录入</template>
+                            <el-form label-position="top">
+                                <div class="flex gap-2">
+                                    <el-form-item label="楼层" class="flex-1"><el-input-number v-model="newSeat.floor" :min="1" :max="5" class="!w-full"></el-input-number></el-form-item>
+                                    <el-form-item label="区域" class="flex-1">
+                                        <el-select v-model="newSeat.zone" class="w-full">
+                                            <el-option label="东A区" value="东A区"></el-option><el-option label="西B区" value="西B区"></el-option><el-option label="北C区" value="北C区"></el-option>
                                         </el-select>
                                     </el-form-item>
-                                    <el-form-item label="详细描述">
-                                        <el-input type="textarea" v-model="feedbackForm.content" :rows="6" placeholder="请详细描述您遇到的问题或建议..."></el-input>
-                                    </el-form-item>
-                                    <el-button type="primary" class="w-full !rounded-xl" @click="submitFeedback" :loading="feedbackLoading">提交反馈</el-button>
-                                </el-form>
-                            </el-card>
-                        </el-col>
-                        <el-col :span="14">
-                            <el-card class="clean-card h-full" shadow="never">
-                                <template #header><span class="font-bold text-slate-700">我的历史反馈</span></template>
-                                <div class="space-y-4 max-h-[450px] overflow-y-auto pr-2">
-                                    <div v-for="f in myFeedbacks" :key="f.id" class="p-4 bg-slate-50 rounded-xl border border-slate-100 relative">
-                                        <div class="flex justify-between items-center mb-2">
-                                            <el-tag size="small" :type="f.type==='系统BUG'?'danger':(f.type==='场馆投诉'?'warning':'info')">{{f.type}}</el-tag>
-                                            <span class="text-xs text-slate-400 font-mono">{{f.createTime?.replace('T',' ').substring(0,16)}}</span>
-                                        </div>
-                                        <p class="text-sm text-slate-700 mb-3">{{f.content}}</p>
-                                        <div v-if="f.status === 1" class="bg-emerald-50 text-emerald-700 p-3 rounded-lg text-sm border border-emerald-100">
-                                            <span class="font-bold text-emerald-800">管理员回复：</span>{{f.reply}}
-                                        </div>
-                                        <div v-else class="text-xs text-slate-400">正在等待管理员处理...</div>
-                                        <div class="absolute top-4 right-4">
-                                            <el-tag size="small" :type="f.status === 1 ? 'success' : 'info'" effect="dark">{{f.status === 1 ? '已解决' : '待处理'}}</el-tag>
-                                        </div>
-                                    </div>
-                                    <div v-if="myFeedbacks.length === 0" class="text-center py-10 text-slate-400 text-sm">暂无反馈记录</div>
                                 </div>
-                            </el-card>
-                        </el-col>
-                    </el-row>
+                                <el-form-item :label="`自动编号 (预览: ${newSeatPrefix}${newSeatNum})`">
+                                    <el-input v-model="newSeatNum" type="number" :min="1" placeholder="数字">
+                                        <template #prepend>{{ newSeatPrefix }}</template>
+                                    </el-input>
+                                </el-form-item>
+
+                                <div class="flex gap-4 mt-2 mb-4">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs text-slate-500">带插座</span>
+                                        <el-switch v-model="newSeat.hasSocket" size="small" style="--el-switch-on-color: #10b981;"></el-switch>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs text-slate-500">靠窗位</span>
+                                        <el-switch v-model="newSeat.isWindow" size="small" style="--el-switch-on-color: #3b82f6;"></el-switch>
+                                    </div>
+                                </div>
+
+                                <el-button type="primary" class="w-full" @click="addNewSeat">添加新座位</el-button>
+                            </el-form>
+                        </el-card>
+
+                        <el-card class="clean-card" shadow="never"><template #header>批量维护</template><el-form label-position="top"><div class="flex gap-2"><el-form-item label="楼层" class="flex-1"><el-select v-model="batchForm.floor" placeholder="全部" clearable class="w-full"><el-option v-for="f in 5" :key="f" :label="f+'楼'" :value="f"></el-option></el-select></el-form-item><el-form-item label="区域" class="flex-1"><el-select v-model="batchForm.zone" placeholder="全部" clearable class="w-full"><el-option label="东A区" value="东A区"></el-option><el-option label="西B区" value="西B区"></el-option><el-option label="北C区" value="北C区"></el-option></el-select></el-form-item></div><div class="flex gap-2"><el-button type="warning" class="flex-1" @click="handleBatchMaintenance(true)">全员维护</el-button><el-button type="success" class="flex-1" @click="handleBatchMaintenance(false)">全员开放</el-button></div></el-form></el-card>
+                        <el-card class="clean-card border-red-100" shadow="never"><template #header><span class="text-red-500">危险操作</span></template><el-form label-position="top"><div class="flex gap-2"><el-select v-model="batchForm.floor" placeholder="楼层" clearable size="small" class="flex-1"><el-option v-for="f in 5" :key="f" :label="f+'楼'" :value="f"></el-option></el-select><el-select v-model="batchForm.zone" placeholder="区域" clearable size="small" class="flex-1"><el-option label="东A区" value="东A区"></el-option><el-option label="西B区" value="西B区"></el-option><el-option label="北C区" value="北C区"></el-option></el-select></div><el-button type="danger" plain class="w-full mt-3" @click="handleBatchDelete">删除选中区域数据</el-button></el-form></el-card>
+                        <el-card class="clean-card" shadow="never"><template #header>闭馆模式</template><div class="flex justify-between items-center bg-slate-50 p-4 rounded-xl"><span>图书馆闭馆</span><el-switch v-model="isLibraryClosed" active-color="#ef4444" @change="handleLibraryStatusChange"></el-switch></div><p class="text-[10px] text-slate-400 mt-4">提示：鼠标悬停下方座位列表点击红色叉号可删除单个座位。</p></el-card>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl border border-slate-100"><div class="flex gap-4 mb-6 items-center"><span class="text-sm font-bold text-slate-500">视图筛选:</span><el-select v-model="adminSeatFloor" class="w-32" @change="fetchAdminSeats"><el-option v-for="f in 5" :key="f" :value="f" :label="f+'楼'"></el-option></el-select><el-select v-model="adminSeatZone" class="w-32" @change="fetchAdminSeats"><el-option v-for="z in ['东A区','西B区','北C区']" :key="z" :value="z" :label="z"></el-option></el-select><span class="text-xs text-slate-400 ml-auto">提示: 鼠标悬停座位可单独删除</span></div><div class="grid grid-cols-10 gap-3"><div v-for="s in adminSeatsList" :key="s.id" :class="['admin-seat', s.status === 0 ? 'free' : (s.status === 2 ? 'maintenance' : 'occupied')]" @click="toggleSingleMaintenance(s)">{{ s.seatNumber }}<div class="delete-btn" @click.stop="deleteSingleSeat(s)"><el-icon><component :is="'Close'"></component></el-icon></div></div></div></div>
                 </div>
-
-                <div v-if="activeMenu === 'admin'" class="space-y-6">
-                    <el-tabs v-model="adminActiveTab" class="bg-white rounded-2xl px-6 pt-2 shadow-sm border border-slate-100" @tab-click="handleAdminTabClick">
-                        <el-tab-pane label="运营概览" name="dashboard"></el-tab-pane>
-                        <el-tab-pane label="用户管理" name="users"></el-tab-pane>
-                        <el-tab-pane label="座位管控" name="seats"></el-tab-pane>
-                        <el-tab-pane label="公告发布" name="notices"></el-tab-pane>
-                        <el-tab-pane label="新闻管理" name="newsMgr"></el-tab-pane>
-                        <el-tab-pane label="反馈处理" name="feedbacks"></el-tab-pane>
-                    </el-tabs>
-                    <div v-if="adminActiveTab === 'dashboard'" class="space-y-6"><div class="grid grid-cols-4 gap-6"><div class="admin-stat-card"><div class="text-xs text-slate-400 font-bold uppercase">注册用户</div><div class="text-3xl font-bold text-slate-800 mt-2">{{ adminDashboard.totalUsers || 0 }}</div></div><div class="admin-stat-card border-l-4 border-emerald-500"><div class="text-xs text-slate-400 font-bold uppercase">实时在馆</div><div class="text-3xl font-bold text-emerald-600 mt-2">{{ adminDashboard.currentOccupied || 0 }}</div></div><div class="admin-stat-card"><div class="text-xs text-slate-400 font-bold uppercase">今日预约</div><div class="text-3xl font-bold text-slate-800 mt-2">{{ adminDashboard.todayCount || 0 }}</div></div><div class="admin-stat-card border-l-4 border-red-400"><div class="text-xs text-slate-400 font-bold uppercase">违规记录</div><div class="text-3xl font-bold text-red-500 mt-2">{{ adminDashboard.violations || 0 }}</div></div></div><el-card class="clean-card" shadow="never"><template #header><div class="flex justify-between items-center"><span class="text-base font-bold text-slate-700">流量走势分析</span><el-radio-group v-model="trendType" size="small" @change="fetchTrendData"><el-radio-button label="day">今日(时)</el-radio-button><el-radio-button label="month">本月(日)</el-radio-button><el-radio-button label="year">全年(月)</el-radio-button></el-radio-group></div></template><div id="adminTrendChart" style="height:350px; width:100%;"></div></el-card></div>
-                    <div v-if="adminActiveTab === 'users'" class="bg-white p-6 rounded-2xl border border-slate-100"><div class="flex justify-between mb-6"><div class="flex gap-3"><el-input v-model="adminUserSearch" placeholder="搜索学号或姓名..." prefix-icon="Search" class="w-64" clearable @clear="fetchAdminUsers" @keyup.enter="fetchAdminUsers"></el-input><el-button type="primary" color="#1e293b" @click="fetchAdminUsers">搜索</el-button></div><el-button plain type="primary" @click="fetchAdminUsers">刷新</el-button></div><el-table :data="adminUsersList" v-loading="loadingAdmin" style="width: 100%"><el-table-column prop="username" label="学号" width="130"></el-table-column><el-table-column label="姓名" width="130"><template #default="scope"><div class="flex items-center gap-3"><el-avatar :size="24" :src="scope.row.avatar"></el-avatar><span class="font-bold">{{ scope.row.realName }}</span></div></template></el-table-column><el-table-column prop="college" label="学院" width="140" show-overflow-tooltip><template #default="scope">{{ scope.row.college || '-' }}</template></el-table-column><el-table-column prop="major" label="专业" width="140" show-overflow-tooltip><template #default="scope">{{ scope.row.major || '-' }}</template></el-table-column><el-table-column prop="lastLoginTime" label="最近入馆" width="160"><template #default="scope"><span class="text-xs text-slate-500 font-mono">{{ scope.row.lastLoginTime ? scope.row.lastLoginTime.replace('T',' ').substring(0,16) : '从未' }}</span></template></el-table-column><el-table-column label="信用分" width="100"><template #default="scope"><el-tag :type="scope.row.creditScore >= 90 ? 'success' : (scope.row.creditScore < 60 ? 'danger' : 'warning')" effect="dark">{{ scope.row.creditScore }}</el-tag></template></el-table-column><el-table-column label="操作" align="right"><template #default="scope"><el-button link type="danger" @click="openCreditDialog(scope.row)">奖惩</el-button></template></el-table-column></el-table></div>
-                    
-                    <div v-if="adminActiveTab === 'seats'" class="space-y-6">
-                        <div class="grid grid-cols-4 gap-6">
-                            
-                            <el-card class="clean-card" shadow="never"><template #header>资源录入</template>
-                                <el-form label-position="top">
-                                    <div class="flex gap-2">
-                                        <el-form-item label="楼层" class="flex-1"><el-input-number v-model="newSeat.floor" :min="1" :max="5" class="!w-full"></el-input-number></el-form-item>
-                                        <el-form-item label="区域" class="flex-1">
-                                            <el-select v-model="newSeat.zone" class="w-full">
-                                                <el-option label="东A区" value="东A区"></el-option><el-option label="西B区" value="西B区"></el-option><el-option label="北C区" value="北C区"></el-option>
-                                            </el-select>
-                                        </el-form-item>
-                                    </div>
-                                    <el-form-item :label="`自动编号 (预览: ${newSeatPrefix}${newSeatNum})`">
-                                        <el-input v-model="newSeatNum" type="number" :min="1" placeholder="数字">
-                                            <template #prepend>{{ newSeatPrefix }}</template>
-                                        </el-input>
-                                    </el-form-item>
-                                    
-                                    <div class="flex gap-4 mt-2 mb-4">
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-xs text-slate-500">带插座</span>
-                                            <el-switch v-model="newSeat.hasSocket" size="small" style="--el-switch-on-color: #10b981;"></el-switch>
-                                        </div>
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-xs text-slate-500">靠窗位</span>
-                                            <el-switch v-model="newSeat.isWindow" size="small" style="--el-switch-on-color: #3b82f6;"></el-switch>
-                                        </div>
-                                    </div>
-                                    
-                                    <el-button type="primary" class="w-full" @click="addNewSeat">添加新座位</el-button>
-                                </el-form>
-                            </el-card>
-
-                            <el-card class="clean-card" shadow="never"><template #header>批量维护</template><el-form label-position="top"><div class="flex gap-2"><el-form-item label="楼层" class="flex-1"><el-select v-model="batchForm.floor" placeholder="全部" clearable class="w-full"><el-option v-for="f in 5" :key="f" :label="f+'楼'" :value="f"></el-option></el-select></el-form-item><el-form-item label="区域" class="flex-1"><el-select v-model="batchForm.zone" placeholder="全部" clearable class="w-full"><el-option label="东A区" value="东A区"></el-option><el-option label="西B区" value="西B区"></el-option><el-option label="北C区" value="北C区"></el-option></el-select></el-form-item></div><div class="flex gap-2"><el-button type="warning" class="flex-1" @click="handleBatchMaintenance(true)">全员维护</el-button><el-button type="success" class="flex-1" @click="handleBatchMaintenance(false)">全员开放</el-button></div></el-form></el-card>
-                            <el-card class="clean-card border-red-100" shadow="never"><template #header><span class="text-red-500">危险操作</span></template><el-form label-position="top"><div class="flex gap-2"><el-select v-model="batchForm.floor" placeholder="楼层" clearable size="small" class="flex-1"><el-option v-for="f in 5" :key="f" :label="f+'楼'" :value="f"></el-option></el-select><el-select v-model="batchForm.zone" placeholder="区域" clearable size="small" class="flex-1"><el-option label="东A区" value="东A区"></el-option><el-option label="西B区" value="西B区"></el-option><el-option label="北C区" value="北C区"></el-option></el-select></div><el-button type="danger" plain class="w-full mt-3" @click="handleBatchDelete">删除选中区域数据</el-button></el-form></el-card>
-                            <el-card class="clean-card" shadow="never"><template #header>闭馆模式</template><div class="flex justify-between items-center bg-slate-50 p-4 rounded-xl"><span>图书馆闭馆</span><el-switch v-model="isLibraryClosed" active-color="#ef4444" @change="handleLibraryStatusChange"></el-switch></div><p class="text-[10px] text-slate-400 mt-4">提示：鼠标悬停下方座位列表点击红色叉号可删除单个座位。</p></el-card>
-                        </div>
-                        <div class="bg-white p-6 rounded-2xl border border-slate-100"><div class="flex gap-4 mb-6 items-center"><span class="text-sm font-bold text-slate-500">视图筛选:</span><el-select v-model="adminSeatFloor" class="w-32" @change="fetchAdminSeats"><el-option v-for="f in 5" :key="f" :value="f" :label="f+'楼'"></el-option></el-select><el-select v-model="adminSeatZone" class="w-32" @change="fetchAdminSeats"><el-option v-for="z in ['东A区','西B区','北C区']" :key="z" :value="z" :label="z"></el-option></el-select><span class="text-xs text-slate-400 ml-auto">提示: 鼠标悬停座位可单独删除</span></div><div class="grid grid-cols-10 gap-3"><div v-for="s in adminSeatsList" :key="s.id" :class="['admin-seat', s.status === 0 ? 'free' : (s.status === 2 ? 'maintenance' : 'occupied')]" @click="toggleSingleMaintenance(s)">{{ s.seatNumber }}<div class="delete-btn" @click.stop="deleteSingleSeat(s)"><el-icon><component :is="'Close'"></component></el-icon></div></div></div></div>
-                    </div>
-                    <div v-if="adminActiveTab === 'notices'" class="bg-white p-6 rounded-2xl border border-slate-100 max-w-2xl"><h3 class="font-bold text-lg mb-6">发布新公告</h3><el-form label-position="top"><el-form-item label="公告标题"><el-input v-model="noticeForm.title" placeholder="请输入标题"></el-input></el-form-item><el-form-item label="类型标签"><el-radio-group v-model="noticeForm.type"><el-radio label="info">普通 (灰)</el-radio><el-radio label="warning">维护 (橙)</el-radio><el-radio label="danger">紧急 (红)</el-radio><el-radio label="success">活动 (绿)</el-radio></el-radio-group></el-form-item><el-form-item label="短标签 (2-4字)"><el-input v-model="noticeForm.tag" placeholder="例如：通知、预警"></el-input></el-form-item><el-button type="primary" color="#1e293b" @click="publishNotice">立即发布</el-button></el-form><div class="mt-8 border-t border-slate-100 pt-6"><h4 class="font-bold text-sm mb-4">已发布公告列表</h4><div v-for="n in campusNews" :key="n.id" class="flex justify-between items-center p-3 bg-slate-50 rounded-xl mb-2"><div class="flex items-center gap-3"><el-tag size="small" :type="n.type">{{ n.tag }}</el-tag><span class="text-sm text-slate-700">{{ n.title }}</span><span class="text-xs text-slate-400">({{ n.createTime ? n.createTime.substring(5,10) : '' }})</span></div><el-button type="danger" link size="small" @click="deleteNotice(n.id)">撤回</el-button></div></div></div>
-                    <div v-if="adminActiveTab === 'newsMgr'" class="bg-white p-6 rounded-2xl border border-slate-100">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div><h3 class="font-bold text-lg mb-6">发布桂电资讯</h3><el-form label-position="top"><el-form-item label="新闻标题"><el-input v-model="newsForm.title" placeholder="请输入标题"></el-input></el-form-item><el-form-item label="简要描述 (首页卡片显示)"><el-input v-model="newsForm.summary" type="textarea" :rows="2" placeholder="一句话概括..."></el-input></el-form-item><el-form-item label="详细内容 (点击弹窗显示)"><div class="mb-2 flex items-center gap-2"><el-upload action="/api/upload" :show-file-list="false" :on-success="handleContentImgSuccess" class="inline-block"><el-button size="small" type="primary" plain icon="Picture">插入正文插图</el-button></el-upload><span class="text-xs text-slate-400">点击按钮上传图片，图片将自动插入到下方文本框中</span></div><el-input v-model="newsForm.content" type="textarea" :rows="8" placeholder="请输入完整的新闻报道内容，支持换行..."></el-input></el-form-item><el-form-item label="封面图片"><el-upload class="upload-demo w-full" action="/api/upload" name="file" :show-file-list="false" :on-success="handleNewsImageSuccess"><div v-if="newsForm.coverImage" class="relative w-full h-48 rounded-xl overflow-hidden border"><img :src="newsForm.coverImage" class="w-full h-full object-cover"><div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity text-white">点击更换</div></div><div v-else class="w-full h-32 border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center text-slate-400 hover:border-emerald-500 hover:text-emerald-600 transition-colors"><el-icon class="text-3xl mb-2"><component :is="'Plus'"></component></el-icon><span class="text-xs">点击上传封面图</span></div></el-upload></el-form-item><el-button type="primary" color="#059669" class="w-full mt-4" @click="submitNews">发布新闻</el-button></el-form></div>
-                            <div class="border-l pl-8 border-slate-100"><h3 class="font-bold text-sm mb-4">历史新闻管理</h3><div class="space-y-4 max-h-[500px] overflow-y-auto pr-2"><div v-for="n in newsData" :key="n.id" class="flex gap-4 items-start p-3 bg-slate-50 rounded-xl"><img :src="n.coverImage" class="w-16 h-16 object-cover rounded bg-slate-200"><div class="flex-1 min-w-0"><p class="font-bold text-sm truncate">{{ n.title }}</p><p class="text-xs text-slate-400">{{ n.publishDate?.substring(0,10) }}</p></div><el-button type="danger" icon="Delete" circle size="small" @click="handleDeleteNews(n)"></el-button></div></div></div>
-                        </div>
-                    </div>
-                    <div v-if="adminActiveTab === 'feedbacks'" class="bg-white p-6 rounded-2xl border border-slate-100">
-                        <div class="flex justify-between mb-4"><h3 class="font-bold text-lg text-slate-800">用户反馈管理</h3><el-button plain type="primary" @click="fetchAdminFeedbacks">刷新</el-button></div>
-                        <el-table :data="adminFeedbacksList" v-loading="loadingAdmin" style="width: 100%">
-                            <el-table-column label="用户" width="120"><template #default="scope"><div class="flex items-center gap-2"><el-avatar :size="24" :src="scope.row.userAvatar"></el-avatar><span class="font-bold text-xs">{{ scope.row.userName }}</span></div></template></el-table-column>
-                            <el-table-column prop="type" label="类型" width="100"><template #default="scope"><el-tag size="small" :type="scope.row.type==='系统BUG'?'danger':(scope.row.type==='场馆投诉'?'warning':'info')">{{scope.row.type}}</el-tag></template></el-table-column>
-                            <el-table-column prop="content" label="反馈内容" min-width="200" show-overflow-tooltip></el-table-column>
-                            <el-table-column prop="createTime" label="时间" width="140"><template #default="scope"><span class="text-xs text-slate-500 font-mono">{{ scope.row.createTime?.replace('T',' ').substring(0,16) }}</span></template></el-table-column>
-                            <el-table-column label="状态" width="90" align="center"><template #default="scope"><el-tag size="small" :type="scope.row.status === 1 ? 'success' : 'info'" effect="dark">{{scope.row.status === 1 ? '已回复' : '待处理'}}</el-tag></template></el-table-column>
-                            <el-table-column label="操作" width="100" align="right"><template #default="scope"><el-button v-if="scope.row.status === 0" link type="primary" @click="openReplyFeedback(scope.row)">回复</el-button><el-button v-else link type="info" @click="viewReplyFeedback(scope.row)">查看</el-button></template></el-table-column>
-                        </el-table>
+                <div v-if="adminActiveTab === 'notices'" class="bg-white p-6 rounded-2xl border border-slate-100 max-w-2xl"><h3 class="font-bold text-lg mb-6">发布新公告</h3><el-form label-position="top"><el-form-item label="公告标题"><el-input v-model="noticeForm.title" placeholder="请输入标题"></el-input></el-form-item><el-form-item label="类型标签"><el-radio-group v-model="noticeForm.type"><el-radio label="info">普通 (灰)</el-radio><el-radio label="warning">维护 (橙)</el-radio><el-radio label="danger">紧急 (红)</el-radio><el-radio label="success">活动 (绿)</el-radio></el-radio-group></el-form-item><el-form-item label="短标签 (2-4字)"><el-input v-model="noticeForm.tag" placeholder="例如：通知、预警"></el-input></el-form-item><el-button type="primary" color="#1e293b" @click="publishNotice">立即发布</el-button></el-form><div class="mt-8 border-t border-slate-100 pt-6"><h4 class="font-bold text-sm mb-4">已发布公告列表</h4><div v-for="n in campusNews" :key="n.id" class="flex justify-between items-center p-3 bg-slate-50 rounded-xl mb-2"><div class="flex items-center gap-3"><el-tag size="small" :type="n.type">{{ n.tag }}</el-tag><span class="text-sm text-slate-700">{{ n.title }}</span><span class="text-xs text-slate-400">({{ n.createTime ? n.createTime.substring(5,10) : '' }})</span></div><el-button type="danger" link size="small" @click="deleteNotice(n.id)">撤回</el-button></div></div></div>
+                <div v-if="adminActiveTab === 'newsMgr'" class="bg-white p-6 rounded-2xl border border-slate-100">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div><h3 class="font-bold text-lg mb-6">发布桂电资讯</h3><el-form label-position="top"><el-form-item label="新闻标题"><el-input v-model="newsForm.title" placeholder="请输入标题"></el-input></el-form-item><el-form-item label="简要描述 (首页卡片显示)"><el-input v-model="newsForm.summary" type="textarea" :rows="2" placeholder="一句话概括..."></el-input></el-form-item><el-form-item label="详细内容 (点击弹窗显示)"><div class="mb-2 flex items-center gap-2"><el-upload action="/api/upload" :show-file-list="false" :on-success="handleContentImgSuccess" class="inline-block"><el-button size="small" type="primary" plain icon="Picture">插入正文插图</el-button></el-upload><span class="text-xs text-slate-400">点击按钮上传图片，图片将自动插入到下方文本框中</span></div><el-input v-model="newsForm.content" type="textarea" :rows="8" placeholder="请输入完整的新闻报道内容，支持换行..."></el-input></el-form-item><el-form-item label="封面图片"><el-upload class="upload-demo w-full" action="/api/upload" name="file" :show-file-list="false" :on-success="handleNewsImageSuccess"><div v-if="newsForm.coverImage" class="relative w-full h-48 rounded-xl overflow-hidden border"><img :src="newsForm.coverImage" class="w-full h-full object-cover"><div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity text-white">点击更换</div></div><div v-else class="w-full h-32 border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center text-slate-400 hover:border-emerald-500 hover:text-emerald-600 transition-colors"><el-icon class="text-3xl mb-2"><component :is="'Plus'"></component></el-icon><span class="text-xs">点击上传封面图</span></div></el-upload></el-form-item><el-button type="primary" color="#059669" class="w-full mt-4" @click="submitNews">发布新闻</el-button></el-form></div>
+                        <div class="border-l pl-8 border-slate-100"><h3 class="font-bold text-sm mb-4">历史新闻管理</h3><div class="space-y-4 max-h-[500px] overflow-y-auto pr-2"><div v-for="n in newsData" :key="n.id" class="flex gap-4 items-start p-3 bg-slate-50 rounded-xl"><img :src="n.coverImage" class="w-16 h-16 object-cover rounded bg-slate-200"><div class="flex-1 min-w-0"><p class="font-bold text-sm truncate">{{ n.title }}</p><p class="text-xs text-slate-400">{{ n.publishDate?.substring(0,10) }}</p></div><el-button type="danger" icon="Delete" circle size="small" @click="handleDeleteNews(n)"></el-button></div></div></div>
                     </div>
                 </div>
-            </el-main>
-        </el-container>
-
-        <el-drawer v-model="newsDrawerVisible" direction="rtl" size="45%" :with-header="false">
-            <div class="custom-drawer-header">
-                <button @click="newsDrawerVisible = false" class="absolute right-6 top-6 text-slate-400 hover:text-slate-800 transition-colors cursor-pointer"><el-icon size="26"><component :is="'Close'"></component></el-icon></button>
-                <h2 class="text-3xl font-black text-blue-900 text-center px-10 leading-tight">{{ currentNews.title }}</h2>
-                <div class="mt-4 flex items-center gap-2 text-sm text-slate-400 font-medium"><el-icon><component :is="'Clock'"></component></el-icon><span>发布日期：{{ currentNews.publishDate?.replace('T', ' ') }}</span></div>
+                <div v-if="adminActiveTab === 'feedbacks'" class="bg-white p-6 rounded-2xl border border-slate-100">
+                    <div class="flex justify-between mb-4"><h3 class="font-bold text-lg text-slate-800">用户反馈管理</h3><el-button plain type="primary" @click="fetchAdminFeedbacks">刷新</el-button></div>
+                    <el-table :data="adminFeedbacksList" v-loading="loadingAdmin" style="width: 100%">
+                        <el-table-column label="用户" width="120"><template #default="scope"><div class="flex items-center gap-2"><el-avatar :size="24" :src="scope.row.userAvatar"></el-avatar><span class="font-bold text-xs">{{ scope.row.userName }}</span></div></template></el-table-column>
+                        <el-table-column prop="type" label="类型" width="100"><template #default="scope"><el-tag size="small" :type="scope.row.type==='系统BUG'?'danger':(scope.row.type==='场馆投诉'?'warning':'info')">{{scope.row.type}}</el-tag></template></el-table-column>
+                        <el-table-column prop="content" label="反馈内容" min-width="200" show-overflow-tooltip></el-table-column>
+                        <el-table-column prop="createTime" label="时间" width="140"><template #default="scope"><span class="text-xs text-slate-500 font-mono">{{ scope.row.createTime?.replace('T',' ').substring(0,16) }}</span></template></el-table-column>
+                        <el-table-column label="状态" width="90" align="center"><template #default="scope"><el-tag size="small" :type="scope.row.status === 1 ? 'success' : 'info'" effect="dark">{{scope.row.status === 1 ? '已回复' : '待处理'}}</el-tag></template></el-table-column>
+                        <el-table-column label="操作" width="100" align="right"><template #default="scope"><el-button v-if="scope.row.status === 0" link type="primary" @click="openReplyFeedback(scope.row)">回复</el-button><el-button v-else link type="info" @click="viewReplyFeedback(scope.row)">查看</el-button></template></el-table-column>
+                    </el-table>
+                </div>
             </div>
-            
-            <div class="flex-grow overflow-y-auto px-10 py-10">
-                <div class="news-content-view" v-html="currentNews.content || '暂无详细内容'"></div>
-                
-                <div class="border-t border-slate-100 mt-12 pt-8">
-                    <div class="flex items-center justify-center gap-8 mb-10">
-                         <el-button round :type="userAction === 'like' ? 'primary' : 'default'" @click="handleNewsAction('like')" size="large">
-                            <el-icon class="mr-2"><component :is="'CaretTop'"></component></el-icon> 点赞 {{ currentNews.likeCount || 0 }}
-                         </el-button>
-                         <el-button round :type="userAction === 'dislike' ? 'danger' : 'default'" @click="handleNewsAction('dislike')" size="large">
-                            <el-icon class="mr-2"><component :is="'CaretBottom'"></component></el-icon> 踩 {{ currentNews.dislikeCount || 0 }}
-                         </el-button>
-                    </div>
+        </el-main>
+    </el-container>
 
-                    <div class="bg-slate-50 p-6 rounded-2xl mb-8">
-                        <div class="mb-4 font-bold text-slate-700 flex items-center gap-2"><el-icon><component :is="'ChatDotRound'"></component></el-icon> 评论区</div>
-                        <div class="flex flex-col gap-3">
-                            <el-input v-model="newComment" :placeholder="replyToId ? '回复 ' + replyToName + '：' : '友善评论，理性交流...'" type="textarea" :rows="3" resize="none" class="bg-white"></el-input>
-                            <div class="flex justify-between items-center">
-                                <el-button v-if="replyToId" link type="info" @click="cancelReply">取消回复</el-button>
-                                <el-button type="primary" class="!rounded-xl px-6 ml-auto" @click="submitComment" :loading="commentSubmitting">发布评论</el-button>
+    <el-drawer v-model="newsDrawerVisible" direction="rtl" size="45%" :with-header="false">
+        <div class="custom-drawer-header">
+            <button @click="newsDrawerVisible = false" class="absolute right-6 top-6 text-slate-400 hover:text-slate-800 transition-colors cursor-pointer"><el-icon size="26"><component :is="'Close'"></component></el-icon></button>
+            <h2 class="text-3xl font-black text-blue-900 text-center px-10 leading-tight">{{ currentNews.title }}</h2>
+            <div class="mt-4 flex items-center gap-2 text-sm text-slate-400 font-medium"><el-icon><component :is="'Clock'"></component></el-icon><span>发布日期：{{ currentNews.publishDate?.replace('T', ' ') }}</span></div>
+        </div>
+
+        <div class="flex-grow overflow-y-auto px-10 py-10">
+            <div class="news-content-view" v-html="currentNews.content || '暂无详细内容'"></div>
+
+            <div class="border-t border-slate-100 mt-12 pt-8">
+                <div class="flex items-center justify-center gap-8 mb-10">
+                    <el-button round :type="userAction === 'like' ? 'primary' : 'default'" @click="handleNewsAction('like')" size="large">
+                        <el-icon class="mr-2"><component :is="'CaretTop'"></component></el-icon> 点赞 {{ currentNews.likeCount || 0 }}
+                    </el-button>
+                    <el-button round :type="userAction === 'dislike' ? 'danger' : 'default'" @click="handleNewsAction('dislike')" size="large">
+                        <el-icon class="mr-2"><component :is="'CaretBottom'"></component></el-icon> 踩 {{ currentNews.dislikeCount || 0 }}
+                    </el-button>
+                </div>
+
+                <div class="bg-slate-50 p-6 rounded-2xl mb-8">
+                    <div class="mb-4 font-bold text-slate-700 flex items-center gap-2"><el-icon><component :is="'ChatDotRound'"></component></el-icon> 评论区</div>
+                    <div class="flex flex-col gap-3">
+                        <el-input v-model="newComment" :placeholder="replyToId ? '回复 ' + replyToName + '：' : '友善评论，理性交流...'" type="textarea" :rows="3" resize="none" class="bg-white"></el-input>
+                        <div class="flex justify-between items-center">
+                            <el-button v-if="replyToId" link type="info" @click="cancelReply">取消回复</el-button>
+                            <el-button type="primary" class="!rounded-xl px-6 ml-auto" @click="submitComment" :loading="commentSubmitting">发布评论</el-button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    <div v-for="c in comments" :key="c.id" :id="'comment-' + c.id" class="highlight-comment border-b border-slate-50 pb-6 last:border-none p-2 rounded-xl">
+                        <div class="flex gap-4">
+                            <el-avatar :src="c.userAvatar" :size="40" class="flex-shrink-0"></el-avatar>
+                            <div class="flex-grow">
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="font-bold text-sm text-slate-800">{{ c.userName }}</span>
+                                    <span class="text-xs text-slate-400 font-mono">{{ c.createTime?.replace('T', ' ').substring(0,16) }}</span>
+                                </div>
+                                <p class="text-sm text-slate-600 leading-relaxed mb-2">{{ c.content }}</p>
+                                <div class="flex items-center gap-4 text-xs text-slate-400">
+                                    <span class="cursor-pointer hover:text-emerald-600 flex items-center gap-1" @click="handleCommentAction(c, 'like')"><el-icon><component :is="'CaretTop'"></component></el-icon> {{ c.likeCount }}</span>
+                                    <span class="cursor-pointer hover:text-red-500 flex items-center gap-1" @click="handleCommentAction(c, 'dislike')"><el-icon><component :is="'CaretBottom'"></component></el-icon> {{ c.dislikeCount }}</span>
+                                    <span class="cursor-pointer hover:text-blue-600 font-bold" @click="setReply(c)">回复</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div v-if="c.replies && c.replies.length > 0" class="ml-14 mt-4 bg-slate-50 p-4 rounded-xl space-y-4">
+                            <div v-for="r in c.replies" :key="r.id" :id="'comment-' + r.id" class="highlight-comment flex gap-3 p-2 rounded-lg">
+                                <el-avatar :src="r.userAvatar" :size="24" class="flex-shrink-0"></el-avatar>
+                                <div class="flex-grow">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <span class="font-bold text-xs text-slate-700">{{ r.userName }}</span>
+                                        <span class="text-[10px] text-slate-400 font-mono">{{ r.createTime?.replace('T', ' ').substring(0,16) }}</span>
+                                    </div>
+                                    <p class="text-xs text-slate-600 leading-relaxed mb-1">
+                                        <span v-if="r.replyToUserName" class="text-blue-500 mr-1">回复 @{{ r.replyToUserName }} :</span>
+                                        {{ r.content }}
+                                    </p>
+                                    <div class="flex items-center gap-4 text-[10px] text-slate-400">
+                                        <span class="cursor-pointer hover:text-emerald-600 flex items-center gap-1" @click="handleCommentAction(r, 'like')"><el-icon><component :is="'CaretTop'"></component></el-icon> {{ r.likeCount }}</span>
+                                        <span class="cursor-pointer hover:text-red-500 flex items-center gap-1" @click="handleCommentAction(r, 'dislike')"><el-icon><component :is="'CaretBottom'"></component></el-icon> {{ r.dislikeCount }}</span>
+                                        <span class="cursor-pointer hover:text-blue-600 font-bold" @click="setReply(r)">回复</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
+                    <div v-if="comments.length === 0" class="text-center py-8 text-slate-400 text-sm">暂无评论，快来抢沙发~</div>
+                </div>
+            </div>
 
-                    <div class="space-y-6">
-                         <div v-for="c in comments" :key="c.id" :id="'comment-' + c.id" class="highlight-comment border-b border-slate-50 pb-6 last:border-none p-2 rounded-xl">
-                             <div class="flex gap-4">
-                                 <el-avatar :src="c.userAvatar" :size="40" class="flex-shrink-0"></el-avatar>
-                                 <div class="flex-grow">
-                                     <div class="flex justify-between items-center mb-1">
-                                         <span class="font-bold text-sm text-slate-800">{{ c.userName }}</span>
-                                         <span class="text-xs text-slate-400 font-mono">{{ c.createTime?.replace('T', ' ').substring(0,16) }}</span>
-                                     </div>
-                                     <p class="text-sm text-slate-600 leading-relaxed mb-2">{{ c.content }}</p>
-                                     <div class="flex items-center gap-4 text-xs text-slate-400">
-                                         <span class="cursor-pointer hover:text-emerald-600 flex items-center gap-1" @click="handleCommentAction(c, 'like')"><el-icon><component :is="'CaretTop'"></component></el-icon> {{ c.likeCount }}</span>
-                                         <span class="cursor-pointer hover:text-red-500 flex items-center gap-1" @click="handleCommentAction(c, 'dislike')"><el-icon><component :is="'CaretBottom'"></component></el-icon> {{ c.dislikeCount }}</span>
-                                         <span class="cursor-pointer hover:text-blue-600 font-bold" @click="setReply(c)">回复</span>
-                                     </div>
-                                 </div>
-                             </div>
+            <div class="h-20"></div>
+        </div>
+    </el-drawer>
 
-                             <div v-if="c.replies && c.replies.length > 0" class="ml-14 mt-4 bg-slate-50 p-4 rounded-xl space-y-4">
-                                 <div v-for="r in c.replies" :key="r.id" :id="'comment-' + r.id" class="highlight-comment flex gap-3 p-2 rounded-lg">
-                                     <el-avatar :src="r.userAvatar" :size="24" class="flex-shrink-0"></el-avatar>
-                                     <div class="flex-grow">
-                                         <div class="flex justify-between items-center mb-1">
-                                             <span class="font-bold text-xs text-slate-700">{{ r.userName }}</span>
-                                             <span class="text-[10px] text-slate-400 font-mono">{{ r.createTime?.replace('T', ' ').substring(0,16) }}</span>
-                                         </div>
-                                         <p class="text-xs text-slate-600 leading-relaxed mb-1">
-                                             <span v-if="r.replyToUserName" class="text-blue-500 mr-1">回复 @{{ r.replyToUserName }} :</span>
-                                             {{ r.content }}
-                                         </p>
-                                         <div class="flex items-center gap-4 text-[10px] text-slate-400">
-                                            <span class="cursor-pointer hover:text-emerald-600 flex items-center gap-1" @click="handleCommentAction(r, 'like')"><el-icon><component :is="'CaretTop'"></component></el-icon> {{ r.likeCount }}</span>
-                                            <span class="cursor-pointer hover:text-red-500 flex items-center gap-1" @click="handleCommentAction(r, 'dislike')"><el-icon><component :is="'CaretBottom'"></component></el-icon> {{ r.dislikeCount }}</span>
-                                            <span class="cursor-pointer hover:text-blue-600 font-bold" @click="setReply(r)">回复</span>
-                                         </div>
-                                     </div>
-                                 </div>
-                             </div>
-                         </div>
-                         <div v-if="comments.length === 0" class="text-center py-8 text-slate-400 text-sm">暂无评论，快来抢沙发~</div>
+    <el-dialog v-model="editDialogVisible" title="编辑资料" width="30%" align-center append-to-body><el-form :model="editForm" label-width="80px"><el-form-item label="头像"><el-upload class="avatar-uploader" action="/api/upload" name="file" :show-file-list="false" :on-success="handleAvatarSuccess"><img v-if="editForm.avatar" :src="editForm.avatar" class="w-24 h-24 object-cover rounded-xl" /><el-icon v-else class="avatar-uploader-icon text-2xl border border-dashed p-8 rounded-xl"><component :is="'Plus'"></component></el-icon></el-upload></el-form-item><el-form-item label="真实姓名"><el-input v-model="editForm.realName"></el-input></el-form-item><el-form-item label="所属学院"><el-select v-model="editForm.college" placeholder="请选择学院" @change="editForm.major = ''" style="width: 100%"><el-option v-for="(majors, col) in collegeData" :key="col" :label="col" :value="col"></el-option></el-select></el-form-item><el-form-item label="专业班级"><el-select v-model="editForm.major" placeholder="请先选择学院" :disabled="!editForm.college" style="width: 100%"><el-option v-for="m in majorOptions" :key="m" :label="m" :value="m"></el-option></el-select></el-form-item></el-form><template #footer><div><el-button @click="editDialogVisible = false">取消</el-button><el-button type="primary" @click="saveProfile">保存</el-button></div></template></el-dialog>
+
+    <el-dialog v-model="creditDialogVisible" title="调整信用分" width="30%" append-to-body>
+        <p class="mb-4 text-sm text-slate-500">正在调整用户 <strong>{{ creditForm.realName }}</strong> ({{ creditForm.username }}) 的信用分。</p>
+        <el-radio-group v-model="creditForm.action" class="mb-4">
+            <el-radio label="deduct">违规扣分 (-5)</el-radio>
+            <el-radio label="reward">奖励加分 (+2)</el-radio>
+            <el-radio label="manual">手动调整</el-radio>
+        </el-radio-group>
+        <div v-if="creditForm.action === 'manual'" class="mb-4 flex items-center gap-3 bg-slate-50 p-3 rounded-lg border border-slate-100">
+            <span class="text-sm font-bold text-slate-600">分数增减：</span>
+            <el-input-number v-model="creditForm.customDelta" :min="-100" :max="100" size="small"></el-input-number>
+            <span class="text-xs text-slate-400">正数加分，负数扣分</span>
+        </div>
+        <template #footer><el-button @click="creditDialogVisible = false">取消</el-button><el-button type="primary" @click="submitCredit">确定</el-button></template>
+    </el-dialog>
+
+    <el-dialog v-model="replyDialogVisible" :title="isViewingReply ? '查看处理结果' : '回复反馈'" width="400px" append-to-body>
+        <div class="bg-slate-50 p-3 rounded-lg text-sm text-slate-700 mb-4 border border-slate-100">{{ currentReplyFeedback.content }}</div>
+        <el-input type="textarea" v-model="replyContent" :rows="4" placeholder="请输入处理结果，将通过站内信通知该用户..." :disabled="isViewingReply"></el-input>
+        <template #footer>
+            <el-button @click="replyDialogVisible = false">{{ isViewingReply ? '关闭' : '取消' }}</el-button>
+            <el-button type="primary" v-if="!isViewingReply" @click="submitAdminReply" :loading="replySubmitting">确认回复</el-button>
+        </template>
+    </el-dialog>
+
+    <el-dialog v-model="creditLogVisible" title="信用分变更流水" width="400px" append-to-body>
+        <div class="max-h-72 overflow-y-auto pr-2">
+            <el-timeline v-if="creditLogs.length > 0">
+                <el-timeline-item v-for="log in creditLogs" :key="log.id" :type="log.delta > 0 ? 'success' : 'danger'" :timestamp="log.createTime?.replace('T', ' ').substring(0, 16)">
+                    <div class="flex justify-between items-center bg-slate-50 p-3 rounded-lg border border-slate-100">
+                        <span class="text-sm font-medium text-slate-700">{{ log.reason }}</span>
+                        <span :class="['font-black text-lg', log.delta > 0 ? 'text-emerald-500' : 'text-red-500']">{{ log.delta > 0 ? '+' + log.delta : log.delta }}</span>
                     </div>
-                </div>
-                
-                <div class="h-20"></div>
+                </el-timeline-item>
+            </el-timeline>
+            <div v-else class="text-center text-slate-400 py-10 text-sm flex flex-col items-center">
+                <el-icon class="text-4xl mb-2 text-slate-200"><component :is="'Document'"></component></el-icon>
+                暂无信用分变更记录
             </div>
-        </el-drawer>
+        </div>
+        <template #footer>
+            <el-button @click="creditLogVisible = false">关闭</el-button>
+        </template>
+    </el-dialog>
 
-        <el-dialog v-model="editDialogVisible" title="编辑资料" width="30%" align-center append-to-body><el-form :model="editForm" label-width="80px"><el-form-item label="头像"><el-upload class="avatar-uploader" action="/api/upload" name="file" :show-file-list="false" :on-success="handleAvatarSuccess"><img v-if="editForm.avatar" :src="editForm.avatar" class="w-24 h-24 object-cover rounded-xl" /><el-icon v-else class="avatar-uploader-icon text-2xl border border-dashed p-8 rounded-xl"><component :is="'Plus'"></component></el-icon></el-upload></el-form-item><el-form-item label="真实姓名"><el-input v-model="editForm.realName"></el-input></el-form-item><el-form-item label="所属学院"><el-select v-model="editForm.college" placeholder="请选择学院" @change="editForm.major = ''" style="width: 100%"><el-option v-for="(majors, col) in collegeData" :key="col" :label="col" :value="col"></el-option></el-select></el-form-item><el-form-item label="专业班级"><el-select v-model="editForm.major" placeholder="请先选择学院" :disabled="!editForm.college" style="width: 100%"><el-option v-for="m in majorOptions" :key="m" :label="m" :value="m"></el-option></el-select></el-form-item></el-form><template #footer><div><el-button @click="editDialogVisible = false">取消</el-button><el-button type="primary" @click="saveProfile">保存</el-button></div></template></el-dialog>
-        
-        <el-dialog v-model="creditDialogVisible" title="调整信用分" width="30%" append-to-body>
-            <p class="mb-4 text-sm text-slate-500">正在调整用户 <strong>{{ creditForm.realName }}</strong> ({{ creditForm.username }}) 的信用分。</p>
-            <el-radio-group v-model="creditForm.action" class="mb-4">
-                <el-radio label="deduct">违规扣分 (-5)</el-radio>
-                <el-radio label="reward">奖励加分 (+2)</el-radio>
-                <el-radio label="manual">手动调整</el-radio>
-            </el-radio-group>
-            <div v-if="creditForm.action === 'manual'" class="mb-4 flex items-center gap-3 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                <span class="text-sm font-bold text-slate-600">分数增减：</span>
-                <el-input-number v-model="creditForm.customDelta" :min="-100" :max="100" size="small"></el-input-number>
-                <span class="text-xs text-slate-400">正数加分，负数扣分</span>
-            </div>
-            <template #footer><el-button @click="creditDialogVisible = false">取消</el-button><el-button type="primary" @click="submitCredit">确定</el-button></template>
-        </el-dialog>
-        
-        <el-dialog v-model="replyDialogVisible" :title="isViewingReply ? '查看处理结果' : '回复反馈'" width="400px" append-to-body>
-            <div class="bg-slate-50 p-3 rounded-lg text-sm text-slate-700 mb-4 border border-slate-100">{{ currentReplyFeedback.content }}</div>
-            <el-input type="textarea" v-model="replyContent" :rows="4" placeholder="请输入处理结果，将通过站内信通知该用户..." :disabled="isViewingReply"></el-input>
-            <template #footer>
-                <el-button @click="replyDialogVisible = false">{{ isViewingReply ? '关闭' : '取消' }}</el-button>
-                <el-button type="primary" v-if="!isViewingReply" @click="submitAdminReply" :loading="replySubmitting">确认回复</el-button>
-            </template>
-        </el-dialog>
+</div>
 
-        <el-dialog v-model="creditLogVisible" title="信用分变更流水" width="400px" append-to-body>
-            <div class="max-h-72 overflow-y-auto pr-2">
-                <el-timeline v-if="creditLogs.length > 0">
-                    <el-timeline-item v-for="log in creditLogs" :key="log.id" :type="log.delta > 0 ? 'success' : 'danger'" :timestamp="log.createTime?.replace('T', ' ').substring(0, 16)">
-                        <div class="flex justify-between items-center bg-slate-50 p-3 rounded-lg border border-slate-100">
-                            <span class="text-sm font-medium text-slate-700">{{ log.reason }}</span>
-                            <span :class="['font-black text-lg', log.delta > 0 ? 'text-emerald-500' : 'text-red-500']">{{ log.delta > 0 ? '+' + log.delta : log.delta }}</span>
-                        </div>
-                    </el-timeline-item>
-                </el-timeline>
-                <div v-else class="text-center text-slate-400 py-10 text-sm flex flex-col items-center">
-                    <el-icon class="text-4xl mb-2 text-slate-200"><component :is="'Document'"></component></el-icon>
-                    暂无信用分变更记录
-                </div>
-            </div>
-            <template #footer>
-                <el-button @click="creditLogVisible = false">关闭</el-button>
-            </template>
-        </el-dialog>
+<script>
+    const { createApp, ref, onMounted, computed, nextTick, watch } = Vue;
+    const collegeData = { "计算机与信息安全学院": ["计算机科学与技术", "软件工程", "物联网工程", "网络工程", "信息安全", "数据科学与大数据技术"], "机电工程学院": ["机械设计制造及其自动化", "机械电子工程", "智能制造工程", "测控技术与仪器"], "信息与通信学院": ["通信工程", "电子信息工程", "电子科学与技术", "微电子科学与工程", "人工智能"], "商学院": ["会计学", "财务管理", "电子商务", "市场营销", "工业工程", "人力资源管理"], "艺术与设计学院": ["产品设计", "环境设计", "视觉传达设计", "数字媒体艺术", "服装与服饰设计"], "外国语学院": ["英语", "日语", "翻译"], "建筑与交通工程学院": ["土木工程", "交通工程", "建筑学", "城乡规划"], "法学院": ["法学", "知识产权"], "理学院": ["数学与应用数学", "应用统计学", "应用物理学"], "材料科学与工程学院": ["材料科学与工程", "高分子材料与工程"] };
+    axios.defaults.baseURL = 'http://localhost:8080';
+    axios.interceptors.request.use(config => { const storedUser = localStorage.getItem('user'); if (storedUser) { try { config.headers['user-id'] = JSON.parse(storedUser).id; } catch (e) {} } return config; });
+    axios.interceptors.response.use(res => res, err => { if (err.response && err.response.status === 401) { localStorage.removeItem('user'); window.location.href='login0.html'; } return Promise.reject(err); });
 
-    </div>
+    const app = createApp({
+        setup() {
+            const user = ref({ id: null, username: '', realName: 'Guest', college: '', major: '', creditScore: 0, avatar: '', role: 'user', lastLoginTime: null });
+            const activeMenu = ref('news');
+            const occupancy = ref({ total: 0, occupied: 0, percent: 0 });
+            const newsData = ref([]);
+            const newsDrawerVisible = ref(false);
+            const currentNews = ref({});
+            const newsForm = ref({ title: '', summary: '', content: '', coverImage: '' });
+            const seats = ref([]);
+            const currentFloor = ref(1);
+            const currentZone = ref('东A区');
+            const selectedSeatId = ref(null);
 
-    <script>
-        const { createApp, ref, onMounted, computed, nextTick, watch } = Vue;
-        const collegeData = { "计算机与信息安全学院": ["计算机科学与技术", "软件工程", "物联网工程", "网络工程", "信息安全", "数据科学与大数据技术"], "机电工程学院": ["机械设计制造及其自动化", "机械电子工程", "智能制造工程", "测控技术与仪器"], "信息与通信学院": ["通信工程", "电子信息工程", "电子科学与技术", "微电子科学与工程", "人工智能"], "商学院": ["会计学", "财务管理", "电子商务", "市场营销", "工业工程", "人力资源管理"], "艺术与设计学院": ["产品设计", "环境设计", "视觉传达设计", "数字媒体艺术", "服装与服饰设计"], "外国语学院": ["英语", "日语", "翻译"], "建筑与交通工程学院": ["土木工程", "交通工程", "建筑学", "城乡规划"], "法学院": ["法学", "知识产权"], "理学院": ["数学与应用数学", "应用统计学", "应用物理学"], "材料科学与工程学院": ["材料科学与工程", "高分子材料与工程"] };
-        axios.defaults.baseURL = 'http://localhost:8080';
-        axios.interceptors.request.use(config => { const storedUser = localStorage.getItem('user'); if (storedUser) { try { config.headers['user-id'] = JSON.parse(storedUser).id; } catch (e) {} } return config; });
-        axios.interceptors.response.use(res => res, err => { if (err.response && err.response.status === 401) { localStorage.removeItem('user'); window.location.href='login0.html'; } return Promise.reject(err); });
+            // 【倒计时核心变量】
+            const myReservation = ref(null);
+            const countdownText = ref('-- : --');
+            const timeState = ref('');
+            const remainingSeconds = ref(0);
+            let countdownTimer = null;
 
-        const app = createApp({
-            setup() {
-                const user = ref({ id: null, username: '', realName: 'Guest', college: '', major: '', creditScore: 0, avatar: '', role: 'user', lastLoginTime: null });
-                const activeMenu = ref('news'); 
-                const occupancy = ref({ total: 0, occupied: 0, percent: 0 });
-                const newsData = ref([]);
-                const newsDrawerVisible = ref(false);
-                const currentNews = ref({});
-                const newsForm = ref({ title: '', summary: '', content: '', coverImage: '' });
-                const seats = ref([]);
-                const currentFloor = ref(1);
-                const currentZone = ref('东A区');
-                const selectedSeatId = ref(null);
-                const myReservation = ref(null); 
-                const campusNews = ref([]);
-                const liveLogs = ref([]);
-                const loadingSeats = ref(false);
-                const bookingLoading = ref(false);
-                const bookingForm = ref({ startTime: '08:00', endTime: '10:00' });
-                const limitTime = ref('08:00');
-                const isLibraryClosed = ref(false);
-                const trendType = ref('day');
-                const adminActiveTab = ref('dashboard');
-                const loadingAdmin = ref(false);
-                const adminDashboard = ref({});
-                const adminUsersList = ref([]);
-                const adminUserSearch = ref('');
-                const adminSeatsList = ref([]);
-                const adminSeatFloor = ref(1);
-                const adminSeatZone = ref('东A区');
-                const noticeForm = ref({ title: '', type: 'info', tag: '通知' });
-                const creditDialogVisible = ref(false);
-                const creditForm = ref({ username: '', realName: '', action: 'deduct', customDelta: 0 });
-                const messages = ref([]);
-                const unreadCount = ref(0);
-                
-                const editDialogVisible = ref(false);
-                const editForm = ref({ id: null, realName: '', avatar: '', college: '', major: '' });
-                
-                const newSeat = ref({ floor: 1, zone: '东A区', seatNumber: '', hasSocket: false, isWindow: false });
-                const batchForm = ref({ floor: null, zone: '' });
-                const newSeatNum = ref(1);
-                
-                const comments = ref([]);
-                const newComment = ref('');
-                const commentSubmitting = ref(false);
-                const userAction = ref(null); 
-                const replyToId = ref(null);   
-                const replyToName = ref('');   
+            const campusNews = ref([]);
+            const liveLogs = ref([]);
+            const loadingSeats = ref(false);
+            const bookingLoading = ref(false);
+            const bookingForm = ref({ startTime: '08:00', endTime: '10:00' });
+            const limitTime = ref('08:00');
+            const isLibraryClosed = ref(false);
+            const trendType = ref('day');
+            const adminActiveTab = ref('dashboard');
+            const loadingAdmin = ref(false);
+            const adminDashboard = ref({});
+            const adminUsersList = ref([]);
+            const adminUserSearch = ref('');
+            const adminSeatsList = ref([]);
+            const adminSeatFloor = ref(1);
+            const adminSeatZone = ref('东A区');
+            const noticeForm = ref({ title: '', type: 'info', tag: '通知' });
+            const creditDialogVisible = ref(false);
+            const creditForm = ref({ username: '', realName: '', action: 'deduct', customDelta: 0 });
+            const messages = ref([]);
+            const unreadCount = ref(0);
 
-                const feedbackForm = ref({ type: '功能建议', content: '' });
-                const feedbackLoading = ref(false);
-                const myFeedbacks = ref([]);
-                const adminFeedbacksList = ref([]);
-                const replyDialogVisible = ref(false);
-                const currentReplyFeedback = ref({});
-                const replyContent = ref('');
-                const replySubmitting = ref(false);
-                const isViewingReply = ref(false);
+            const editDialogVisible = ref(false);
+            const editForm = ref({ id: null, realName: '', avatar: '', college: '', major: '' });
 
-                const creditLogVisible = ref(false);
-                const creditLogs = ref([]);
+            const newSeat = ref({ floor: 1, zone: '东A区', seatNumber: '', hasSocket: false, isWindow: false });
+            const batchForm = ref({ floor: null, zone: '' });
+            const newSeatNum = ref(1);
 
-                const filterHasSocket = ref(false);
-                const filterIsWindow = ref(false);
+            const comments = ref([]);
+            const newComment = ref('');
+            const commentSubmitting = ref(false);
+            const userAction = ref(null);
+            const replyToId = ref(null);
+            const replyToName = ref('');
 
-                // 【核心修改：去掉 F，格式变为：1-A-】
-                const newSeatPrefix = computed(() => {
-                   const zoneMap = { '东A区': 'A', '西B区': 'B', '北C区': 'C' };
-                   return `${newSeat.value.floor}-${zoneMap[newSeat.value.zone] || 'A'}-`;
+            const feedbackForm = ref({ type: '功能建议', content: '' });
+            const feedbackLoading = ref(false);
+            const myFeedbacks = ref([]);
+            const adminFeedbacksList = ref([]);
+            const replyDialogVisible = ref(false);
+            const currentReplyFeedback = ref({});
+            const replyContent = ref('');
+            const replySubmitting = ref(false);
+            const isViewingReply = ref(false);
+
+            const creditLogVisible = ref(false);
+            const creditLogs = ref([]);
+
+            const filterHasSocket = ref(false);
+            const filterIsWindow = ref(false);
+
+            const newSeatPrefix = computed(() => {
+                const zoneMap = { '东A区': 'A', '西B区': 'B', '北C区': 'C' };
+                return `${newSeat.value.floor}-${zoneMap[newSeat.value.zone] || 'A'}-`;
+            });
+
+            const pageTitle = computed(() => ({
+                dashboard:'场馆动态看板',
+                news:'桂电校园资讯',
+                booking:'选座预约',
+                profile:'个人中心',
+                feedback: '意见反馈与支持',
+                admin:'后台管理系统'
+            }[activeMenu.value]));
+            const majorOptions = computed(() => editForm.value.college ? collegeData[editForm.value.college] : []);
+            const selectedSeat = computed(() => seats.value.find(s => s.id === selectedSeatId.value));
+
+            const displaySeats = computed(() => {
+                return seats.value.map(seat => {
+                    let hidden = false;
+                    if (filterHasSocket.value && !seat.hasSocket) hidden = true;
+                    if (filterIsWindow.value && !seat.isWindow) hidden = true;
+
+                    return {
+                        ...seat,
+                        _hiddenByFilter: hidden,
+                        _isWindowMock: seat.isWindow
+                    };
                 });
-                
-                const pageTitle = computed(() => ({ 
-                    dashboard:'场馆动态看板', 
-                    news:'桂电校园资讯', 
-                    booking:'选座预约', 
-                    profile:'个人中心', 
-                    feedback: '意见反馈与支持',
-                    admin:'后台管理系统' 
-                }[activeMenu.value]));
-                const majorOptions = computed(() => editForm.value.college ? collegeData[editForm.value.college] : []);
-                const selectedSeat = computed(() => seats.value.find(s => s.id === selectedSeatId.value));
-                
-                const displaySeats = computed(() => {
-                    return seats.value.map(seat => {
-                        let hidden = false;
-                        if (filterHasSocket.value && !seat.hasSocket) hidden = true;
-                        if (filterIsWindow.value && !seat.isWindow) hidden = true;
-                        
-                        return {
-                            ...seat,
-                            _hiddenByFilter: hidden,
-                            _isWindowMock: seat.isWindow
-                        };
-                    });
-                });
-                
-                let adminChartInstance = null;
-                const storedUser = localStorage.getItem('user');
-                if (storedUser) { try { user.value = JSON.parse(storedUser); } catch(e) {} }
+            });
 
-                const fetchMessages = async () => { if (!user.value.id) return; try { const res = await axios.get('/api/messages/mine', { params: { userId: user.value.id } }); messages.value = res.data; const countRes = await axios.get('/api/messages/unread', { params: { userId: user.value.id } }); unreadCount.value = countRes.data; } catch(e) {} };
-                
-                const markAllRead = async () => {
-                    if (!user.value.id || unreadCount.value === 0) return;
+            let adminChartInstance = null;
+            const storedUser = localStorage.getItem('user');
+            if (storedUser) { try { user.value = JSON.parse(storedUser); } catch(e) {} }
+
+            const fetchMessages = async () => { if (!user.value.id) return; try { const res = await axios.get('/api/messages/mine', { params: { userId: user.value.id } }); messages.value = res.data; const countRes = await axios.get('/api/messages/unread', { params: { userId: user.value.id } }); unreadCount.value = countRes.data; } catch(e) {} };
+
+            const markAllRead = async () => {
+                if (!user.value.id || unreadCount.value === 0) return;
+                try {
+                    await axios.post('/api/messages/read-all', null, { params: { userId: user.value.id } });
+                    messages.value.forEach(msg => msg.isRead = true);
+                    unreadCount.value = 0;
+                    ElementPlus.ElMessage.success('已全部标记为已读');
+                } catch(e) {}
+            };
+
+            const readMessage = async (msg) => {
+                if (!msg.isRead) {
                     try {
-                        await axios.post('/api/messages/read-all', null, { params: { userId: user.value.id } });
-                        messages.value.forEach(msg => msg.isRead = true);
-                        unreadCount.value = 0;
-                        ElementPlus.ElMessage.success('已全部标记为已读');
+                        await axios.post(`/api/messages/read/${msg.id}`);
+                        msg.isRead = true;
+                        if (unreadCount.value > 0) unreadCount.value--;
                     } catch(e) {}
-                };
-
-                const readMessage = async (msg) => { 
-                    if (!msg.isRead) {
-                        try { 
-                            await axios.post(`/api/messages/read/${msg.id}`); 
-                            msg.isRead = true; 
-                            if (unreadCount.value > 0) unreadCount.value--; 
-                        } catch(e) {} 
-                    }
-                    if (msg.relatedId) {
-                        try {
-                            if (msg.commentId) window.targetCommentId = msg.commentId;
-                            const res = await axios.get('/api/news/detail', { params: { id: msg.relatedId } });
-                            if (res.data) {
-                                activeMenu.value = 'news'; 
-                                viewNews(res.data);
-                            }
-                        } catch(e) {}
-                    }
-                };
-
-                const viewCreditLogs = async () => {
-                    if (!user.value.id) return;
+                }
+                if (msg.relatedId) {
                     try {
-                        const res = await axios.get('/api/credit/logs', { params: { userId: user.value.id } });
-                        creditLogs.value = res.data;
-                        creditLogVisible.value = true;
+                        if (msg.commentId) window.targetCommentId = msg.commentId;
+                        const res = await axios.get('/api/news/detail', { params: { id: msg.relatedId } });
+                        if (res.data) {
+                            activeMenu.value = 'news';
+                            viewNews(res.data);
+                        }
                     } catch(e) {}
-                };
+                }
+            };
 
-                const fetchMyFeedbacks = async () => {
-                    if (!user.value.id) return;
-                    try { const res = await axios.get('/api/feedback/mine'); myFeedbacks.value = res.data; } catch(e){}
-                };
-                
-                const submitFeedback = async () => {
-                    if(!feedbackForm.value.content.trim()) return ElementPlus.ElMessage.warning('内容不能为空');
-                    feedbackLoading.value = true;
-                    try {
-                        await axios.post('/api/feedback/submit', feedbackForm.value);
-                        ElementPlus.ElMessage.success('反馈提交成功');
-                        feedbackForm.value.content = '';
-                        fetchMyFeedbacks();
-                    } catch(e) {} finally { feedbackLoading.value = false; }
-                };
+            const viewCreditLogs = async () => {
+                if (!user.value.id) return;
+                try {
+                    const res = await axios.get('/api/credit/logs', { params: { userId: user.value.id } });
+                    creditLogs.value = res.data;
+                    creditLogVisible.value = true;
+                } catch(e) {}
+            };
 
-                const fetchAdminFeedbacks = async () => {
-                    loadingAdmin.value = true;
-                    try { const res = await axios.get('/api/feedback/all'); adminFeedbacksList.value = res.data; } catch(e){} finally { loadingAdmin.value = false; }
-                };
+            const fetchMyFeedbacks = async () => {
+                if (!user.value.id) return;
+                try { const res = await axios.get('/api/feedback/mine'); myFeedbacks.value = res.data; } catch(e){}
+            };
 
-                const openReplyFeedback = (row) => {
-                    currentReplyFeedback.value = row; replyContent.value = ''; isViewingReply.value = false; replyDialogVisible.value = true;
-                };
+            const submitFeedback = async () => {
+                if(!feedbackForm.value.content.trim()) return ElementPlus.ElMessage.warning('内容不能为空');
+                feedbackLoading.value = true;
+                try {
+                    await axios.post('/api/feedback/submit', feedbackForm.value);
+                    ElementPlus.ElMessage.success('反馈提交成功');
+                    feedbackForm.value.content = '';
+                    fetchMyFeedbacks();
+                } catch(e) {} finally { feedbackLoading.value = false; }
+            };
 
-                const viewReplyFeedback = (row) => {
-                    currentReplyFeedback.value = row; replyContent.value = row.reply; isViewingReply.value = true; replyDialogVisible.value = true;
-                };
+            const fetchAdminFeedbacks = async () => {
+                loadingAdmin.value = true;
+                try { const res = await axios.get('/api/feedback/all'); adminFeedbacksList.value = res.data; } catch(e){} finally { loadingAdmin.value = false; }
+            };
 
-                const submitAdminReply = async () => {
-                    if(!replyContent.value.trim()) return ElementPlus.ElMessage.warning('回复不能为空');
-                    replySubmitting.value = true;
-                    try {
-                        await axios.post('/api/feedback/reply', { id: currentReplyFeedback.value.id, reply: replyContent.value });
-                        ElementPlus.ElMessage.success('回复成功');
-                        replyDialogVisible.value = false;
-                        fetchAdminFeedbacks();
-                    } catch(e) {} finally { replySubmitting.value = false; }
-                };
+            const openReplyFeedback = (row) => {
+                currentReplyFeedback.value = row; replyContent.value = ''; isViewingReply.value = false; replyDialogVisible.value = true;
+            };
 
-                const openEditDialog = () => { editForm.value = { ...user.value }; editDialogVisible.value = true; };
-                const handleAvatarSuccess = (res) => { editForm.value.avatar = res; };
-                const saveProfile = async () => { try { await axios.post('/api/user/update', editForm.value); user.value = { ...user.value, ...editForm.value }; localStorage.setItem('user', JSON.stringify(user.value)); editDialogVisible.value = false; ElementPlus.ElMessage.success('更新成功'); } catch (e) { ElementPlus.ElMessage.error('失败'); } };
-                const checkMyReservation = async () => { if (!user.value.id) return; try { const res = await axios.get('/api/seats/mine', { params: { userId: user.value.id } }); myReservation.value = res.data || null; } catch (e) {} };
-                const refreshSeats = async () => { loadingSeats.value = true; selectedSeatId.value = null; try { const res = await axios.get('/api/seats/list', { params: { floor: currentFloor.value, zone: currentZone.value, _t: new Date().getTime() } }); seats.value = res.data || []; } catch (e) {} finally { loadingSeats.value = false; } };
-                const fetchOccupancy = async () => { try { const res = await axios.get('/api/seats/occupancy'); if(res.data) occupancy.value = res.data; } catch(e){} };
-                const isMySeat = (s) => myReservation.value && myReservation.value.seatId === s.id;
-                const getSeatClass = (s) => isMySeat(s) ? 'my-seat' : (s.status === 0 ? 'available' : 'occupied');
-                const handleSeatClick = (s) => { if(s.status === 2) return; if(isMySeat(s) || s.status === 0) selectedSeatId.value = s.id; };
-                const confirmBooking = async () => { if (!user.value.id) return ElementPlus.ElMessage.warning('请先登录'); bookingLoading.value = true; const today = new Date().toISOString().split('T')[0]; try { await axios.post('/api/seats/book', { userId: user.value.id, seatId: selectedSeat.value.id, startTime: `${today}T${bookingForm.value.startTime}:00`, endTime: `${today}T${bookingForm.value.endTime}:00` }); ElementPlus.ElMessage.success('预约成功'); checkMyReservation(); refreshSeats(); fetchOccupancy(); } catch(e) { ElementPlus.ElMessage.error(e.response?.data || '失败'); } finally { bookingLoading.value = false; } };
-                const handleCancel = async () => { bookingLoading.value = true; try { await axios.post('/api/seats/cancel', { userId: user.value.id, seatId: selectedSeat.value.id }); ElementPlus.ElMessage.success('已退座'); checkMyReservation(); refreshSeats(); fetchOccupancy(); } catch(e) { ElementPlus.ElMessage.error('失败'); } finally { bookingLoading.value = false; } };
-                const handleCancelFromProfile = async () => { if(!myReservation.value) return; try { await axios.post('/api/seats/cancel', { userId: user.value.id, seatId: myReservation.value.seatId }); ElementPlus.ElMessage.success('已退座'); checkMyReservation(); refreshSeats(); fetchOccupancy(); } catch(e){} };
-                const handleHeaderAction = async () => { if (!myReservation.value) return; if (myReservation.value.status === 0) { try { const res = await axios.post('/api/seats/checkin', { id: myReservation.value.id }); ElementPlus.ElMessage.success(res.data); checkMyReservation(); refreshSeats(); } catch(e) { ElementPlus.ElMessage.error(e.response?.data || '签到失败'); } } else { try { const res = await axios.post('/api/seats/checkout', { id: myReservation.value.id }); ElementPlus.ElMessage.success(res.data); checkMyReservation(); refreshSeats(); const uRes = await axios.get('/api/user/info', { params: { userId: user.value.id } }); if(uRes.data) { user.value = uRes.data; localStorage.setItem('user', JSON.stringify(user.value)); } } catch(e) { ElementPlus.ElMessage.error('操作失败'); } } };
-                const fetchAdminDashboard = async () => { try { const res = await axios.get('/api/admin/dashboard'); adminDashboard.value = res.data; initAdminChart(); } catch(e){} };
-                const fetchAdminUsers = async () => { loadingAdmin.value = true; try { const res = await axios.get('/api/admin/users', { params: { keyword: adminUserSearch.value } }); adminUsersList.value = res.data; } catch(e){} finally { loadingAdmin.value = false; } };
-                const fetchAdminSeats = async () => { loadingAdmin.value = true; try { const res = await axios.get('/api/seats/list', { params: { floor: adminSeatFloor.value, zone: adminSeatZone.value } }); adminSeatsList.value = res.data; } catch(e){} finally { loadingAdmin.value = false; } };
-                const publishNotice = async () => { if(!noticeForm.value.title) return ElementPlus.ElMessage.warning('请输入标题'); try { await axios.post('/api/admin/notice', noticeForm.value); ElementPlus.ElMessage.success('发布成功'); noticeForm.value.title=''; const res = await axios.get('/api/notices/latest'); campusNews.value = res.data.map(i=>({...i, time: i.createTime?.substring(5,10)})); } catch(e){} };
-                const deleteNotice = async (id) => { try { await ElementPlus.ElMessageBox.confirm('确定撤回？','提示',{type:'warning'}); await axios.post('/api/admin/notice/delete', {id}); ElementPlus.ElMessage.success('已撤回'); const res = await axios.get('/api/notices/latest'); campusNews.value = res.data.map(i=>({...i, time: i.createTime?.substring(5,10)})); } catch(e){} };
-                const checkLibraryStatus = async () => { try { const res = await axios.get('/api/seats/status'); isLibraryClosed.value = res.data.closed; } catch(e){} };
-                const handleLibraryStatusChange = async (val) => { 
-                    try { 
-                        await ElementPlus.ElMessageBox.confirm(val ? '确定要立即闭馆吗？' : '确定恢复开馆吗？', '系统警告', { type: val ? 'error' : 'warning' }); 
-                        await axios.post('/api/admin/library/toggle', { close: val }); 
-                        ElementPlus.ElMessage.success(val ? '已执行全馆闭馆' : '已恢复正常开馆'); 
-                        fetchAdminSeats(); initCharts(); checkMyReservation(); refreshSeats(); fetchOccupancy();
-                    } catch (e) { isLibraryClosed.value = !val; } 
-                };
-                
-                const openCreditDialog = (row) => { 
-                    creditForm.value = { username: row.username, realName: row.realName, action: 'deduct', customDelta: 0 }; 
-                    creditDialogVisible.value = true; 
-                };
-                
-                const submitCredit = async () => { 
-                    let d = 0;
-                    if(creditForm.value.action === 'deduct') d = -5;
-                    else if(creditForm.value.action === 'reward') d = 2;
-                    else d = creditForm.value.customDelta;
-                    
-                    try { 
-                        await axios.post('/api/admin/credit', { username: creditForm.value.username, delta: d }); 
-                        ElementPlus.ElMessage.success('操作成功'); 
-                        creditDialogVisible.value = false; 
-                        fetchAdminUsers(); 
-                    } catch(e){} 
-                };
-                
-                // 【前端修复：接收拦截的报错信息】
-                const toggleSingleMaintenance = async (s) => { 
-                    const status = s.status !== 2; 
-                    try { 
-                        await axios.post('/api/admin/seat/maintenance', { seatId: s.id, maintenance: status }); 
-                        fetchAdminSeats(); 
-                    } catch(e) {
-                        ElementPlus.ElMessage.error(e.response?.data || '操作失败');
-                    } 
-                };
+            const viewReplyFeedback = (row) => {
+                currentReplyFeedback.value = row; replyContent.value = row.reply; isViewingReply.value = true; replyDialogVisible.value = true;
+            };
 
-                const toggleSeatMaintenance = async (seat) => { 
-                    const isMain = seat.status === 2; 
-                    const action = isMain ? '解除维护' : '设为维护'; 
-                    try { 
-                        await ElementPlus.ElMessageBox.confirm(`确定要将座位 ${seat.seatNumber} ${action}吗？`, '提示', { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' }); 
-                        await axios.post('/api/admin/seat/maintenance', { seatId: seat.id, maintenance: !isMain }); 
-                        ElementPlus.ElMessage.success('操作成功'); 
-                        fetchAdminSeats(); 
-                    } catch(e) {
-                        if (e !== 'cancel') ElementPlus.ElMessage.error(e.response?.data || '操作失败');
-                    } 
-                };
-                
-                const fetchNextSeatNum = async () => {
-                    const f = newSeat.value.floor;
-                    const z = newSeat.value.zone;
-                    if(!f || !z) return;
-                    try {
-                        const res = await axios.get('/api/seats/list', { params: { floor: f, zone: z } });
-                        const list = res.data || [];
-                        let max = 0; 
-                        const prefix = `${f}-${{ '东A区': 'A', '西B区': 'B', '北C区': 'C' }[z]}-`;
-                        list.forEach(s => {
-                            if(s.seatNumber.startsWith(prefix)) {
-                                // 【核心修改 2：去掉 10 进制参数，并且直接 parseInt，不再依赖 001】
-                                const numStr = s.seatNumber.replace(prefix, '');
-                                const num = parseInt(numStr);
-                                if(!isNaN(num) && num > max) max = num;
-                            }
-                        });
-                        newSeatNum.value = max + 1;
-                    } catch(e) {}
-                };
+            const submitAdminReply = async () => {
+                if(!replyContent.value.trim()) return ElementPlus.ElMessage.warning('回复不能为空');
+                replySubmitting.value = true;
+                try {
+                    await axios.post('/api/feedback/reply', { id: currentReplyFeedback.value.id, reply: replyContent.value });
+                    ElementPlus.ElMessage.success('回复成功');
+                    replyDialogVisible.value = false;
+                    fetchAdminFeedbacks();
+                } catch(e) {} finally { replySubmitting.value = false; }
+            };
 
-                watch([() => newSeat.value.floor, () => newSeat.value.zone], fetchNextSeatNum, { immediate: true });
-                
-                const addNewSeat = async () => { 
-                    // 【核心修改 3：数字不再补零，直接拼】
-                    newSeat.value.seatNumber = `${newSeatPrefix.value}${newSeatNum.value}`; 
-                    try { 
-                        await axios.post('/api/admin/seat/add', newSeat.value); 
-                        ElementPlus.ElMessage.success('成功录入座位: ' + newSeat.value.seatNumber); 
-                        fetchAdminSeats(); 
-                        fetchNextSeatNum(); 
-                    } catch (e) { 
-                        ElementPlus.ElMessage.error(e.response?.data || '添加失败'); 
-                    } 
-                };
-                
-                const deleteSingleSeat = async (s) => { try { await ElementPlus.ElMessageBox.confirm('确定永久删除该座位？'); await axios.post('/api/admin/seat/delete', { id: s.id }); ElementPlus.ElMessage.success('已删除'); fetchAdminSeats(); } catch (e) {} };
-                
-                const handleBatchMaintenance = async (status) => { 
-                    try { 
-                        await ElementPlus.ElMessageBox.confirm(status ? '确定维护？' : '确定开放？'); 
-                        await axios.post('/api/admin/seat/batch-maintenance', { floor: batchForm.value.floor, zone: batchForm.value.zone, maintenance: status }); 
-                        ElementPlus.ElMessage.success('批量操作完成'); 
-                        fetchAdminSeats(); 
-                    } catch (e) { 
-                        if (e !== 'cancel') ElementPlus.ElMessage.error(e.response?.data || '操作失败');
-                    } 
-                };
-                
-                const handleBatchDelete = async () => { try { await ElementPlus.ElMessageBox.confirm('危险操作：确认删除', '警告', { type: 'error' }); await axios.post('/api/admin/seat/batch-delete', { floor: batchForm.value.floor, zone: batchForm.value.zone }); ElementPlus.ElMessage.success('已清空'); fetchAdminSeats(); } catch (e) {} };
+            const openEditDialog = () => { editForm.value = { ...user.value }; editDialogVisible.value = true; };
+            const handleAvatarSuccess = (res) => { editForm.value.avatar = res; };
+            const saveProfile = async () => { try { await axios.post('/api/user/update', editForm.value); user.value = { ...user.value, ...editForm.value }; localStorage.setItem('user', JSON.stringify(user.value)); editDialogVisible.value = false; ElementPlus.ElMessage.success('更新成功'); } catch (e) { ElementPlus.ElMessage.error('失败'); } };
 
-                const fetchNewsData = async () => { try { const res = await axios.get('/api/news/latest'); newsData.value = res.data; } catch(e){} };
-                const submitNews = async () => { if(!newsForm.value.title) return; try { await axios.post('/api/news/add', newsForm.value); ElementPlus.ElMessage.success('发布成功'); newsForm.value = { title: '', summary: '', content: '', coverImage: '' }; fetchNewsData(); } catch(e) {} };
-                const handleDeleteNews = async (news) => { try { await ElementPlus.ElMessageBox.confirm('确定删除？'); await axios.post('/api/news/delete', news); ElementPlus.ElMessage.success('已删除'); fetchNewsData(); } catch(e){} };
-                const handleNewsImageSuccess = (res) => { newsForm.value.coverImage = res; };
-                const handleContentImgSuccess = (res) => { newsForm.value.content = (newsForm.value.content || '') + `<br><img src="${res}" style="max-width:100%; border-radius: 8px; margin: 10px 0;"><br>`; };
-                
-                const fetchComments = async (newsId) => {
-                    try {
-                        const res = await axios.get('/api/news/comments', { params: { newsId } });
-                        comments.value = res.data;
-                        nextTick(() => {
-                            if(window.targetCommentId) {
-                                const el = document.getElementById('comment-' + window.targetCommentId);
-                                if(el) {
-                                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                    el.style.backgroundColor = '#d1fae5'; 
-                                    setTimeout(() => el.style.backgroundColor = 'transparent', 2000);
+            // 【核心修复】：时间容差防抖机制，解决卡顿跳秒问题
+            const checkMyReservation = async () => {
+                if (!user.value.id) return;
+                try {
+                    const res = await axios.get('/api/seats/mine', { params: { userId: user.value.id } });
+                    myReservation.value = res.data || null;
+
+                    if (myReservation.value && (myReservation.value.status === 0 || myReservation.value.status === 1)) {
+                        const timeRes = await axios.get('/api/reservation/my-active', { params: { userId: user.value.id } });
+                        if (timeRes.data && timeRes.data.remainingSeconds !== undefined) {
+                            const newSeconds = timeRes.data.remainingSeconds;
+                            timeState.value = timeRes.data.timeState;
+                            myReservation.value.seatNumber = timeRes.data.seatNumber || myReservation.value.seatNumber;
+
+                            if (timeState.value === 'OVERDUE') {
+                                countdownText.value = '处理中';
+                                if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+                            } else {
+                                // 关键防抖：只有没有定时器，或者前后端时间误差超过 2 秒，才重新初始化定时器
+                                if (!countdownTimer || Math.abs(remainingSeconds.value - newSeconds) > 2) {
+                                    remainingSeconds.value = newSeconds;
+
+                                    if (countdownTimer) clearInterval(countdownTimer);
+                                    countdownTimer = setInterval(() => {
+                                        if (remainingSeconds.value > 0) {
+                                            remainingSeconds.value--;
+                                            const h = Math.floor(remainingSeconds.value / 3600);
+                                            const mins = Math.floor((remainingSeconds.value % 3600) / 60).toString().padStart(2, '0');
+                                            const secs = (remainingSeconds.value % 60).toString().padStart(2, '0');
+                                            countdownText.value = h > 0 ? `${h}:${mins}:${secs}` : `${mins}:${secs}`;
+                                        } else {
+                                            clearInterval(countdownTimer);
+                                            countdownTimer = null;
+                                            countdownText.value = '同步中';
+                                            checkMyReservation(); // 归零后向后端同步
+                                        }
+                                    }, 1000);
                                 }
-                                window.targetCommentId = null; 
                             }
-                        });
-                    } catch(e) {}
-                };
+                        }
+                    } else {
+                        if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+                    }
+                } catch (e) { console.error('获取预约状态异常', e); }
+            };
 
-                const viewNews = (news) => { 
-                    currentNews.value = news; 
-                    newsDrawerVisible.value = true;
-                    comments.value = []; newComment.value = ''; userAction.value = null; replyToId.value = null; 
-                    fetchComments(news.id);
-                };
+            const handleExtend = async () => {
+                if (!myReservation.value) return;
+                try {
+                    const res = await axios.post(`/api/reservation/extend?reservationId=${myReservation.value.id}`);
+                    ElementPlus.ElMessage.success(res.data);
+                    checkMyReservation();
+                } catch(e) {
+                    ElementPlus.ElMessage.error(e.response?.data || '续签失败');
+                }
+            };
 
-                const handleNewsAction = async (type) => {
-                    if (!user.value.id) return ElementPlus.ElMessage.warning('请先登录');
+            const refreshSeats = async () => { loadingSeats.value = true; selectedSeatId.value = null; try { const res = await axios.get('/api/seats/list', { params: { floor: currentFloor.value, zone: currentZone.value, _t: new Date().getTime() } }); seats.value = res.data || []; } catch (e) {} finally { loadingSeats.value = false; } };
+            const fetchOccupancy = async () => { try { const res = await axios.get('/api/seats/occupancy'); if(res.data) occupancy.value = res.data; } catch(e){} };
+            const isMySeat = (s) => myReservation.value && myReservation.value.seatId === s.id;
+            const getSeatClass = (s) => isMySeat(s) ? 'my-seat' : (s.status === 0 ? 'available' : 'occupied');
+            const handleSeatClick = (s) => { if(s.status === 2) return; if(isMySeat(s) || s.status === 0) selectedSeatId.value = s.id; };
+            const confirmBooking = async () => { if (!user.value.id) return ElementPlus.ElMessage.warning('请先登录'); bookingLoading.value = true; const today = new Date().toISOString().split('T')[0]; try { await axios.post('/api/seats/book', { userId: user.value.id, seatId: selectedSeat.value.id, startTime: `${today}T${bookingForm.value.startTime}:00`, endTime: `${today}T${bookingForm.value.endTime}:00` }); ElementPlus.ElMessage.success('预约成功'); checkMyReservation(); refreshSeats(); fetchOccupancy(); } catch(e) { ElementPlus.ElMessage.error(e.response?.data || '失败'); } finally { bookingLoading.value = false; } };
+            const handleCancel = async () => { bookingLoading.value = true; try { await axios.post('/api/seats/cancel', { userId: user.value.id, seatId: selectedSeat.value.id }); ElementPlus.ElMessage.success('已退座'); checkMyReservation(); refreshSeats(); fetchOccupancy(); } catch(e) { ElementPlus.ElMessage.error('失败'); } finally { bookingLoading.value = false; } };
+            const handleCancelFromProfile = async () => { if(!myReservation.value) return; try { await axios.post('/api/seats/cancel', { userId: user.value.id, seatId: myReservation.value.seatId }); ElementPlus.ElMessage.success('已退座'); checkMyReservation(); refreshSeats(); fetchOccupancy(); } catch(e){} };
+
+            const handleHeaderAction = async () => {
+                if (!myReservation.value) return;
+                if (myReservation.value.status === 0) {
+                    bookingLoading.value = true;
                     try {
-                        await axios.post('/api/news/action', { newsId: currentNews.value.id, type: type });
-                        if(type === 'like') currentNews.value.likeCount = (currentNews.value.likeCount || 0) + 1;
-                        if(type === 'dislike') currentNews.value.dislikeCount = (currentNews.value.dislikeCount || 0) + 1;
-                        userAction.value = type; ElementPlus.ElMessage.success('操作成功');
-                    } catch(e) { if(e.response && e.response.data) ElementPlus.ElMessage.warning(e.response.data); }
-                };
-                
-                const setReply = (comment) => {
-                    replyToId.value = comment.id; replyToName.value = comment.userName;
-                    const textarea = document.querySelector('.el-textarea__inner');
-                    if(textarea) { textarea.focus(); textarea.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
-                };
-                
-                const cancelReply = () => { replyToId.value = null; replyToName.value = ''; };
-
-                const submitComment = async () => {
-                    if (!user.value.id) return ElementPlus.ElMessage.warning('请先登录');
-                    if (!newComment.value.trim()) return ElementPlus.ElMessage.warning('评论不能为空');
-                    commentSubmitting.value = true;
+                        const res = await axios.post('/api/seats/checkin', { id: myReservation.value.id });
+                        ElementPlus.ElMessage.success(res.data || '签到成功');
+                        checkMyReservation(); refreshSeats();
+                    } catch(e) {
+                        ElementPlus.ElMessage.error(e.response?.data || '签到失败');
+                    } finally {
+                        bookingLoading.value = false;
+                    }
+                } else {
                     try {
-                        await axios.post('/api/news/comment', { newsId: currentNews.value.id, content: newComment.value, parentId: replyToId.value });
-                        ElementPlus.ElMessage.success('发布成功');
-                        newComment.value = ''; cancelReply(); fetchComments(currentNews.value.id);
-                    } catch(e) { ElementPlus.ElMessage.error('失败'); } finally { commentSubmitting.value = false; }
-                };
-                
-                const handleCommentAction = async (comment, type) => {
-                    if (!user.value.id) return ElementPlus.ElMessage.warning('请先登录');
-                    try {
-                        await axios.post('/api/news/comment/action', { commentId: comment.id, type: type });
-                        if(type === 'like') comment.likeCount++; if(type === 'dislike') comment.dislikeCount++;
-                        ElementPlus.ElMessage.success('已评价');
-                    } catch(e){ if(e.response && e.response.data) ElementPlus.ElMessage.warning(e.response.data); }
-                };
+                        const res = await axios.post('/api/seats/checkout', { id: myReservation.value.id });
+                        ElementPlus.ElMessage.success(res.data);
+                        checkMyReservation(); refreshSeats();
+                        const uRes = await axios.get('/api/user/info', { params: { userId: user.value.id } });
+                        if(uRes.data) { user.value = uRes.data; localStorage.setItem('user', JSON.stringify(user.value)); }
+                    } catch(e) { ElementPlus.ElMessage.error('操作失败'); }
+                }
+            };
 
-                const fetchTrendData = async () => {
-                    try {
-                        const res = await axios.get('/api/admin/trend', { params: { type: trendType.value } });
-                        const data = res.data;
-                        nextTick(() => {
-                            const dom = document.getElementById('adminTrendChart');
-                            if (!dom) return;
-                            let instance = echarts.getInstanceByDom(dom);
-                            if (!instance) { instance = echarts.init(dom); adminChartInstance = instance; }
-                            instance.setOption({
-                                tooltip: { trigger: 'axis' }, legend: { data: ['总预约', '违约'], bottom: 0 },
-                                grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
-                                xAxis: { type: 'category', boundaryGap: false, data: data.dates }, yAxis: { type: 'value' },
-                                series: [
-                                    { name: '总预约', type: 'line', smooth: true, symbol: 'none', lineStyle: { width: 3, color: '#059669' }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(5, 150, 105, 0.3)' }, { offset: 1, color: 'rgba(5, 150, 105, 0.01)' }]) }, data: data.orders },
-                                    { name: '违约', type: 'line', smooth: true, symbol: 'none', lineStyle: { width: 2, type: 'dashed', color: '#ef4444' }, data: data.violations }
-                                ]
-                            });
-                            instance.resize();
-                        });
-                    } catch (e) {}
-                };
+            const fetchAdminDashboard = async () => { try { const res = await axios.get('/api/admin/dashboard'); adminDashboard.value = res.data; initAdminChart(); } catch(e){} };
+            const fetchAdminUsers = async () => { loadingAdmin.value = true; try { const res = await axios.get('/api/admin/users', { params: { keyword: adminUserSearch.value } }); adminUsersList.value = res.data; } catch(e){} finally { loadingAdmin.value = false; } };
+            const fetchAdminSeats = async () => { loadingAdmin.value = true; try { const res = await axios.get('/api/seats/list', { params: { floor: adminSeatFloor.value, zone: adminSeatZone.value } }); adminSeatsList.value = res.data; } catch(e){} finally { loadingAdmin.value = false; } };
+            const publishNotice = async () => { if(!noticeForm.value.title) return ElementPlus.ElMessage.warning('请输入标题'); try { await axios.post('/api/admin/notice', noticeForm.value); ElementPlus.ElMessage.success('发布成功'); noticeForm.value.title=''; const res = await axios.get('/api/notices/latest'); campusNews.value = res.data.map(i=>({...i, time: i.createTime?.substring(5,10)})); } catch(e){} };
+            const deleteNotice = async (id) => { try { await ElementPlus.ElMessageBox.confirm('确定撤回？','提示',{type:'warning'}); await axios.post('/api/admin/notice/delete', {id}); ElementPlus.ElMessage.success('已撤回'); const res = await axios.get('/api/notices/latest'); campusNews.value = res.data.map(i=>({...i, time: i.createTime?.substring(5,10)})); } catch(e){} };
+            const checkLibraryStatus = async () => { try { const res = await axios.get('/api/seats/status'); isLibraryClosed.value = res.data.closed; } catch(e){} };
+            const handleLibraryStatusChange = async (val) => {
+                try {
+                    await ElementPlus.ElMessageBox.confirm(val ? '确定要立即闭馆吗？' : '确定恢复开馆吗？', '系统警告', { type: val ? 'error' : 'warning' });
+                    await axios.post('/api/admin/library/toggle', { close: val });
+                    ElementPlus.ElMessage.success(val ? '已执行全馆闭馆' : '已恢复正常开馆');
+                    fetchAdminSeats(); initCharts(); checkMyReservation(); refreshSeats(); fetchOccupancy();
+                } catch (e) { isLibraryClosed.value = !val; }
+            };
 
-                const initAdminChart = () => { nextTick(() => { fetchTrendData(); }); };
+            const openCreditDialog = (row) => {
+                creditForm.value = { username: row.username, realName: row.realName, action: 'deduct', customDelta: 0 };
+                creditDialogVisible.value = true;
+            };
 
-                let charts = [];
-                const initCharts = async () => { 
-                    try { const res = await axios.get('/api/notices/latest'); campusNews.value = res.data.map(i=>({...i, time: i.createTime?.substring(5,10)})); } catch(e){} 
-                    try { const res = await axios.get('/api/seats/logs'); liveLogs.value = res.data || []; } catch(e){} 
-                    nextTick(async () => {
-                        const hDom = document.getElementById('heatmapChart'); 
-                        if(hDom) { 
-                            const c = echarts.init(hDom); 
-                            try { 
-                                const r = await axios.get('/api/seats/stats', { params: { _t: new Date().getTime() } }); 
-                                const graphic = isLibraryClosed.value ? [{ type: 'text', left: 'center', top: 'middle', style: { text: '当前馆内维护/闭馆中', fill: 'rgba(239, 68, 68, 0.2)', fontSize: 40, fontWeight: 'bold' } }] : []; 
-                                c.setOption({ tooltip: {position:'top'}, grid: {top:'10%', bottom:'20%'}, xAxis:{type:'category', data:['8点','10点','12点','14点','16点','18点','20点']}, yAxis:{type:'category', data:['1F','2F','3F','4F','5F']}, visualMap:{min:0, max:5, inRange:{color:['#f0fdf4','#16a34a']}, orient:'horizontal', left:'center', bottom:0}, graphic: graphic, series:[{type:'heatmap', data:r.data, label:{show:true}}] }); 
-                                charts.push(c); 
-                            } catch(e){} 
-                        } 
-                        const cDom = document.getElementById('compareChart'); 
-                        if(cDom) { 
-                            const c = echarts.init(cDom); 
-                            try { 
-                                const r = await axios.get('/api/seats/saturation', { params: { _t: new Date().getTime() } }); 
-                                c.setOption({ tooltip:{trigger:'axis'}, grid:{top:10, bottom:20, left:40, right:20}, xAxis:{type:'value', max:100}, yAxis:{type:'category', data:['1F','2F','3F','4F','5F']}, series:[{type:'bar', data:r.data, itemStyle:{color:'#10b981', borderRadius:[0,5,5,0]}}] }); 
-                                charts.push(c); 
-                            } catch(e){} 
+            const submitCredit = async () => {
+                let d = 0;
+                if(creditForm.value.action === 'deduct') d = -5;
+                else if(creditForm.value.action === 'reward') d = 2;
+                else d = creditForm.value.customDelta;
+
+                try {
+                    await axios.post('/api/admin/credit', { username: creditForm.value.username, delta: d });
+                    ElementPlus.ElMessage.success('操作成功');
+                    creditDialogVisible.value = false;
+                    fetchAdminUsers();
+                } catch(e){}
+            };
+
+            const toggleSingleMaintenance = async (s) => {
+                const status = s.status !== 2;
+                try {
+                    await axios.post('/api/admin/seat/maintenance', { seatId: s.id, maintenance: status });
+                    fetchAdminSeats();
+                } catch(e) {
+                    ElementPlus.ElMessage.error(e.response?.data || '操作失败');
+                }
+            };
+
+            const toggleSeatMaintenance = async (seat) => {
+                const isMain = seat.status === 2;
+                const action = isMain ? '解除维护' : '设为维护';
+                try {
+                    await ElementPlus.ElMessageBox.confirm(`确定要将座位 ${seat.seatNumber} ${action}吗？`, '提示', { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' });
+                    await axios.post('/api/admin/seat/maintenance', { seatId: seat.id, maintenance: !isMain });
+                    ElementPlus.ElMessage.success('操作成功');
+                    fetchAdminSeats();
+                } catch(e) {
+                    if (e !== 'cancel') ElementPlus.ElMessage.error(e.response?.data || '操作失败');
+                }
+            };
+
+            const fetchNextSeatNum = async () => {
+                const f = newSeat.value.floor;
+                const z = newSeat.value.zone;
+                if(!f || !z) return;
+                try {
+                    const res = await axios.get('/api/seats/list', { params: { floor: f, zone: z } });
+                    const list = res.data || [];
+                    let max = 0;
+                    const prefix = `${f}-${{ '东A区': 'A', '西B区': 'B', '北C区': 'C' }[z]}-`;
+                    list.forEach(s => {
+                        if(s.seatNumber.startsWith(prefix)) {
+                            const numStr = s.seatNumber.replace(prefix, '');
+                            const num = parseInt(numStr);
+                            if(!isNaN(num) && num > max) max = num;
                         }
                     });
-                };
+                    newSeatNum.value = max + 1;
+                } catch(e) {}
+            };
 
-                const updateTimeConstraints = () => {
-                    const now = new Date();
-                    const h = String(now.getHours()).padStart(2, '0');
-                    const m = String(now.getMinutes()).padStart(2, '0');
-                    limitTime.value = `${h}:${m}`;
-                    let nextH = now.getHours();
-                    let nextM = now.getMinutes() >= 30 ? 0 : 30;
-                    if (now.getMinutes() >= 30) nextH += 1;
-                    const nextTimeStr = `${String(nextH).padStart(2,'0')}:${String(nextM).padStart(2,'0')}`;
-                    if (bookingForm.value.startTime === '08:00') {
-                        bookingForm.value.startTime = nextTimeStr;
-                        let endH = nextH + 2; if (endH > 22) endH = 22;
-                        bookingForm.value.endTime = `${String(endH).padStart(2,'0')}:${String(nextM).padStart(2,'0')}`;
+            watch([() => newSeat.value.floor, () => newSeat.value.zone], fetchNextSeatNum, { immediate: true });
+
+            const addNewSeat = async () => {
+                newSeat.value.seatNumber = `${newSeatPrefix.value}${newSeatNum.value}`;
+                try {
+                    await axios.post('/api/admin/seat/add', newSeat.value);
+                    ElementPlus.ElMessage.success('成功录入座位: ' + newSeat.value.seatNumber);
+                    fetchAdminSeats();
+                    fetchNextSeatNum();
+                } catch (e) {
+                    ElementPlus.ElMessage.error(e.response?.data || '添加失败');
+                }
+            };
+
+            const deleteSingleSeat = async (s) => { try { await ElementPlus.ElMessageBox.confirm('确定永久删除该座位？'); await axios.post('/api/admin/seat/delete', { id: s.id }); ElementPlus.ElMessage.success('已删除'); fetchAdminSeats(); } catch (e) {} };
+
+            const handleBatchMaintenance = async (status) => {
+                try {
+                    await ElementPlus.ElMessageBox.confirm(status ? '确定维护？' : '确定开放？');
+                    await axios.post('/api/admin/seat/batch-maintenance', { floor: batchForm.value.floor, zone: batchForm.value.zone, maintenance: status });
+                    ElementPlus.ElMessage.success('批量操作完成');
+                    fetchAdminSeats();
+                } catch (e) {
+                    if (e !== 'cancel') ElementPlus.ElMessage.error(e.response?.data || '操作失败');
+                }
+            };
+
+            const handleBatchDelete = async () => { try { await ElementPlus.ElMessageBox.confirm('危险操作：确认删除', '警告', { type: 'error' }); await axios.post('/api/admin/seat/batch-delete', { floor: batchForm.value.floor, zone: batchForm.value.zone }); ElementPlus.ElMessage.success('已清空'); fetchAdminSeats(); } catch (e) {} };
+
+            const fetchNewsData = async () => { try { const res = await axios.get('/api/news/latest'); newsData.value = res.data; } catch(e){} };
+            const submitNews = async () => { if(!newsForm.value.title) return; try { await axios.post('/api/news/add', newsForm.value); ElementPlus.ElMessage.success('发布成功'); newsForm.value = { title: '', summary: '', content: '', coverImage: '' }; fetchNewsData(); } catch(e) {} };
+            const handleDeleteNews = async (news) => { try { await ElementPlus.ElMessageBox.confirm('确定删除？'); await axios.post('/api/news/delete', news); ElementPlus.ElMessage.success('已删除'); fetchNewsData(); } catch(e){} };
+            const handleNewsImageSuccess = (res) => { newsForm.value.coverImage = res; };
+            const handleContentImgSuccess = (res) => { newsForm.value.content = (newsForm.value.content || '') + `<br><img src="${res}" style="max-width:100%; border-radius: 8px; margin: 10px 0;"><br>`; };
+
+            const fetchComments = async (newsId) => {
+                try {
+                    const res = await axios.get('/api/news/comments', { params: { newsId } });
+                    comments.value = res.data;
+                    nextTick(() => {
+                        if(window.targetCommentId) {
+                            const el = document.getElementById('comment-' + window.targetCommentId);
+                            if(el) {
+                                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                el.style.backgroundColor = '#d1fae5';
+                                setTimeout(() => el.style.backgroundColor = 'transparent', 2000);
+                            }
+                            window.targetCommentId = null;
+                        }
+                    });
+                } catch(e) {}
+            };
+
+            const viewNews = (news) => {
+                currentNews.value = news;
+                newsDrawerVisible.value = true;
+                comments.value = []; newComment.value = ''; userAction.value = null; replyToId.value = null;
+                fetchComments(news.id);
+            };
+
+            const handleNewsAction = async (type) => {
+                if (!user.value.id) return ElementPlus.ElMessage.warning('请先登录');
+                try {
+                    await axios.post('/api/news/action', { newsId: currentNews.value.id, type: type });
+                    if(type === 'like') currentNews.value.likeCount = (currentNews.value.likeCount || 0) + 1;
+                    if(type === 'dislike') currentNews.value.dislikeCount = (currentNews.value.dislikeCount || 0) + 1;
+                    userAction.value = type; ElementPlus.ElMessage.success('操作成功');
+                } catch(e) { if(e.response && e.response.data) ElementPlus.ElMessage.warning(e.response.data); }
+            };
+
+            const setReply = (comment) => {
+                replyToId.value = comment.id; replyToName.value = comment.userName;
+                const textarea = document.querySelector('.el-textarea__inner');
+                if(textarea) { textarea.focus(); textarea.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+            };
+
+            const cancelReply = () => { replyToId.value = null; replyToName.value = ''; };
+
+            const submitComment = async () => {
+                if (!user.value.id) return ElementPlus.ElMessage.warning('请先登录');
+                if (!newComment.value.trim()) return ElementPlus.ElMessage.warning('评论不能为空');
+                commentSubmitting.value = true;
+                try {
+                    await axios.post('/api/news/comment', { newsId: currentNews.value.id, content: newComment.value, parentId: replyToId.value });
+                    ElementPlus.ElMessage.success('发布成功');
+                    newComment.value = ''; cancelReply(); fetchComments(currentNews.value.id);
+                } catch(e) { ElementPlus.ElMessage.error('失败'); } finally { commentSubmitting.value = false; }
+            };
+
+            const handleCommentAction = async (comment, type) => {
+                if (!user.value.id) return ElementPlus.ElMessage.warning('请先登录');
+                try {
+                    await axios.post('/api/news/comment/action', { commentId: comment.id, type: type });
+                    if(type === 'like') comment.likeCount++; if(type === 'dislike') comment.dislikeCount++;
+                    ElementPlus.ElMessage.success('已评价');
+                } catch(e){ if(e.response && e.response.data) ElementPlus.ElMessage.warning(e.response.data); }
+            };
+
+            const fetchTrendData = async () => {
+                try {
+                    const res = await axios.get('/api/admin/trend', { params: { type: trendType.value } });
+                    const data = res.data;
+                    nextTick(() => {
+                        const dom = document.getElementById('adminTrendChart');
+                        if (!dom) return;
+                        let instance = echarts.getInstanceByDom(dom);
+                        if (!instance) { instance = echarts.init(dom); adminChartInstance = instance; }
+                        instance.setOption({
+                            tooltip: { trigger: 'axis' }, legend: { data: ['总预约', '违约'], bottom: 0 },
+                            grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
+                            xAxis: { type: 'category', boundaryGap: false, data: data.dates }, yAxis: { type: 'value' },
+                            series: [
+                                { name: '总预约', type: 'line', smooth: true, symbol: 'none', lineStyle: { width: 3, color: '#059669' }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(5, 150, 105, 0.3)' }, { offset: 1, color: 'rgba(5, 150, 105, 0.01)' }]) }, data: data.orders },
+                                { name: '违约', type: 'line', smooth: true, symbol: 'none', lineStyle: { width: 2, type: 'dashed', color: '#ef4444' }, data: data.violations }
+                            ]
+                        });
+                        instance.resize();
+                    });
+                } catch (e) {}
+            };
+
+            const initAdminChart = () => { nextTick(() => { fetchTrendData(); }); };
+
+            let charts = [];
+            const initCharts = async () => {
+                try { const res = await axios.get('/api/notices/latest'); campusNews.value = res.data.map(i=>({...i, time: i.createTime?.substring(5,10)})); } catch(e){}
+                try { const res = await axios.get('/api/seats/logs'); liveLogs.value = res.data || []; } catch(e){}
+                nextTick(async () => {
+                    const hDom = document.getElementById('heatmapChart');
+                    if(hDom) {
+                        const c = echarts.init(hDom);
+                        try {
+                            const r = await axios.get('/api/seats/stats', { params: { _t: new Date().getTime() } });
+                            const graphic = isLibraryClosed.value ? [{ type: 'text', left: 'center', top: 'middle', style: { text: '当前馆内维护/闭馆中', fill: 'rgba(239, 68, 68, 0.2)', fontSize: 40, fontWeight: 'bold' } }] : [];
+                            c.setOption({ tooltip: {position:'top'}, grid: {top:'10%', bottom:'20%'}, xAxis:{type:'category', data:['8点','10点','12点','14点','16点','18点','20点']}, yAxis:{type:'category', data:['1F','2F','3F','4F','5F']}, visualMap:{min:0, max:5, inRange:{color:['#f0fdf4','#16a34a']}, orient:'horizontal', left:'center', bottom:0}, graphic: graphic, series:[{type:'heatmap', data:r.data, label:{show:true}}] });
+                            charts.push(c);
+                        } catch(e){}
                     }
-                };
-
-                const handleMenuSelect = (idx) => { 
-                    activeMenu.value = idx; 
-                    if(idx === 'news') fetchNewsData(); 
-                    if(idx === 'booking') refreshSeats(); 
-                    if(idx === 'dashboard') nextTick(() => { initCharts(); });
-                    if(idx === 'feedback') fetchMyFeedbacks();
-                    if(idx === 'admin') { 
-                        if(adminActiveTab.value === 'dashboard') fetchAdminDashboard();
-                        if(adminActiveTab.value === 'users') fetchAdminUsers();
-                        if(adminActiveTab.value === 'seats') fetchAdminSeats();
-                        if(adminActiveTab.value === 'newsMgr') fetchNewsData();
-                        if(adminActiveTab.value === 'feedbacks') fetchAdminFeedbacks();
-                    } 
-                };
-                
-                const handleAdminTabClick = (tab) => { 
-                    if(tab.props.name === 'dashboard') fetchAdminDashboard(); 
-                    if(tab.props.name === 'users') fetchAdminUsers(); 
-                    if(tab.props.name === 'seats') fetchAdminSeats(); 
-                    if(tab.props.name === 'newsMgr') fetchNewsData(); 
-                    if(tab.props.name === 'feedbacks') fetchAdminFeedbacks();
-                };
-                
-                const handleUserCommand = (cmd) => { if(cmd === 'logout'){ localStorage.removeItem('user'); location.href='login0.html'; } else if(cmd === 'profile') activeMenu.value = 'profile'; };
-
-                onMounted(() => {
-                    checkLibraryStatus();
-                    if(activeMenu.value === 'dashboard') setTimeout(initCharts, 200); else if(activeMenu.value === 'news') fetchNewsData();
-                    fetchOccupancy(); setInterval(fetchOccupancy, 30000);
-                    
-                    if(user.value.id) { 
-                        checkMyReservation(); fetchMessages(); 
-                        setInterval(() => { checkMyReservation(); }, 3000);
-                        setInterval(fetchMessages, 60000); 
+                    const cDom = document.getElementById('compareChart');
+                    if(cDom) {
+                        const c = echarts.init(cDom);
+                        try {
+                            const r = await axios.get('/api/seats/saturation', { params: { _t: new Date().getTime() } });
+                            c.setOption({ tooltip:{trigger:'axis'}, grid:{top:10, bottom:20, left:40, right:20}, xAxis:{type:'value', max:100}, yAxis:{type:'category', data:['1F','2F','3F','4F','5F']}, series:[{type:'bar', data:r.data, itemStyle:{color:'#10b981', borderRadius:[0,5,5,0]}}] });
+                            charts.push(c);
+                        } catch(e){}
                     }
-                    
-                    setInterval(() => {
-                        if (activeMenu.value === 'admin' && adminActiveTab.value === 'dashboard') fetchAdminDashboard();
-                    }, 10000);
-
-                    window.addEventListener('resize', () => charts.forEach(c => c.resize()));
-                    updateTimeConstraints(); setInterval(updateTimeConstraints, 60000);
                 });
+            };
 
-                return {
-                    user, activeMenu, pageTitle, occupancy, myReservation, selectedSeatId, selectedSeat, seats, currentFloor, currentZone, loadingSeats, bookingLoading, bookingForm, campusNews, liveLogs,
-                    editDialogVisible, editForm, openEditDialog, handleAvatarSuccess, saveProfile, majorOptions, collegeData,
-                    handleMenuSelect, handleUserCommand, refreshSeats, getSeatClass, isMySeat, handleSeatClick, confirmBooking, handleCancel, handleCancelFromProfile,
-                    messages, unreadCount, fetchMessages, readMessage, markAllRead, toggleSeatMaintenance, toggleSingleMaintenance,
-                    adminActiveTab, loadingAdmin, adminDashboard, adminUsersList, adminUserSearch, adminSeatsList, adminSeatFloor, adminSeatZone, noticeForm, creditDialogVisible, creditForm,
-                    fetchAdminDashboard, fetchAdminUsers, fetchAdminSeats, publishNotice, openCreditDialog, submitCredit, handleAdminTabClick,
-                    handleHeaderAction, limitTime, deleteNotice, isLibraryClosed, handleLibraryStatusChange,
-                    newsData, newsForm, submitNews, handleDeleteNews, handleNewsImageSuccess, trendType, fetchTrendData,
-                    newsDrawerVisible, currentNews, viewNews, handleContentImgSuccess,
-                    newSeat, batchForm, addNewSeat, handleBatchMaintenance, deleteSingleSeat, handleBatchDelete, newSeatNum, newSeatPrefix, fetchNextSeatNum,
-                    comments, newComment, commentSubmitting, userAction, submitComment, handleNewsAction, replyToId, replyToName, setReply, cancelReply, handleCommentAction,
-                    feedbackForm, feedbackLoading, myFeedbacks, adminFeedbacksList, replyDialogVisible, currentReplyFeedback, replyContent, replySubmitting, isViewingReply,
-                    submitFeedback, fetchMyFeedbacks, fetchAdminFeedbacks, openReplyFeedback, viewReplyFeedback, submitAdminReply,
-                    creditLogVisible, creditLogs, viewCreditLogs,
-                    filterHasSocket, filterIsWindow, displaySeats
-                };
-            }
-        });
-        
-        for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
-            app.component(key, component);
+            const updateTimeConstraints = () => {
+                const now = new Date();
+                const h = String(now.getHours()).padStart(2, '0');
+                const m = String(now.getMinutes()).padStart(2, '0');
+                limitTime.value = `${h}:${m}`;
+                let nextH = now.getHours();
+                let nextM = now.getMinutes() >= 30 ? 0 : 30;
+                if (now.getMinutes() >= 30) nextH += 1;
+                const nextTimeStr = `${String(nextH).padStart(2,'0')}:${String(nextM).padStart(2,'0')}`;
+                if (bookingForm.value.startTime === '08:00') {
+                    bookingForm.value.startTime = nextTimeStr;
+                    let endH = nextH + 2; if (endH > 22) endH = 22;
+                    bookingForm.value.endTime = `${String(endH).padStart(2,'0')}:${String(nextM).padStart(2,'0')}`;
+                }
+            };
+
+            const handleMenuSelect = (idx) => {
+                activeMenu.value = idx;
+                if(idx === 'news') fetchNewsData();
+                if(idx === 'booking') refreshSeats();
+                if(idx === 'dashboard') nextTick(() => { initCharts(); });
+                if(idx === 'feedback') fetchMyFeedbacks();
+                if(idx === 'admin') {
+                    if(adminActiveTab.value === 'dashboard') fetchAdminDashboard();
+                    if(adminActiveTab.value === 'users') fetchAdminUsers();
+                    if(adminActiveTab.value === 'seats') fetchAdminSeats();
+                    if(adminActiveTab.value === 'newsMgr') fetchNewsData();
+                    if(adminActiveTab.value === 'feedbacks') fetchAdminFeedbacks();
+                }
+            };
+
+            const handleAdminTabClick = (tab) => {
+                if(tab.props.name === 'dashboard') fetchAdminDashboard();
+                if(tab.props.name === 'users') fetchAdminUsers();
+                if(tab.props.name === 'seats') fetchAdminSeats();
+                if(tab.props.name === 'newsMgr') fetchNewsData();
+                if(tab.props.name === 'feedbacks') fetchAdminFeedbacks();
+            };
+
+            const handleUserCommand = (cmd) => { if(cmd === 'logout'){ localStorage.removeItem('user'); location.href='login0.html'; } else if(cmd === 'profile') activeMenu.value = 'profile'; };
+
+            onMounted(() => {
+                checkLibraryStatus();
+                if(activeMenu.value === 'dashboard') setTimeout(initCharts, 200); else if(activeMenu.value === 'news') fetchNewsData();
+                fetchOccupancy(); setInterval(fetchOccupancy, 30000);
+
+                if(user.value.id) {
+                    checkMyReservation(); fetchMessages();
+                    setInterval(() => { checkMyReservation(); }, 3000); // 每 3 秒同步一次状态
+                    setInterval(fetchMessages, 60000);
+                }
+
+                setInterval(() => {
+                    if (activeMenu.value === 'admin' && adminActiveTab.value === 'dashboard') fetchAdminDashboard();
+                }, 10000);
+
+                window.addEventListener('resize', () => charts.forEach(c => c.resize()));
+                updateTimeConstraints(); setInterval(updateTimeConstraints, 60000);
+            });
+
+            return {
+                user, activeMenu, pageTitle, occupancy, myReservation, selectedSeatId, selectedSeat, seats, currentFloor, currentZone, loadingSeats, bookingLoading, bookingForm, campusNews, liveLogs,
+                editDialogVisible, editForm, openEditDialog, handleAvatarSuccess, saveProfile, majorOptions, collegeData,
+                handleMenuSelect, handleUserCommand, refreshSeats, getSeatClass, isMySeat, handleSeatClick, confirmBooking, handleCancel, handleCancelFromProfile,
+                messages, unreadCount, fetchMessages, readMessage, markAllRead, toggleSeatMaintenance, toggleSingleMaintenance,
+                adminActiveTab, loadingAdmin, adminDashboard, adminUsersList, adminUserSearch, adminSeatsList, adminSeatFloor, adminSeatZone, noticeForm, creditDialogVisible, creditForm,
+                fetchAdminDashboard, fetchAdminUsers, fetchAdminSeats, publishNotice, openCreditDialog, submitCredit, handleAdminTabClick,
+                handleHeaderAction, handleExtend, limitTime, deleteNotice, isLibraryClosed, handleLibraryStatusChange,
+                newsData, newsForm, submitNews, handleDeleteNews, handleNewsImageSuccess, trendType, fetchTrendData,
+                newsDrawerVisible, currentNews, viewNews, handleContentImgSuccess,
+                newSeat, batchForm, addNewSeat, handleBatchMaintenance, deleteSingleSeat, handleBatchDelete, newSeatNum, newSeatPrefix, fetchNextSeatNum,
+                comments, newComment, commentSubmitting, userAction, submitComment, handleNewsAction, replyToId, replyToName, setReply, cancelReply, handleCommentAction,
+                feedbackForm, feedbackLoading, myFeedbacks, adminFeedbacksList, replyDialogVisible, currentReplyFeedback, replyContent, replySubmitting, isViewingReply,
+                submitFeedback, fetchMyFeedbacks, fetchAdminFeedbacks, openReplyFeedback, viewReplyFeedback, submitAdminReply,
+                creditLogVisible, creditLogs, viewCreditLogs,
+                filterHasSocket, filterIsWindow, displaySeats,
+                countdownText, timeState
+            };
         }
-        
-        app.use(ElementPlus);
-        app.mount('#app');
-    </script>
+    });
+
+    for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+        app.component(key, component);
+    }
+
+    app.use(ElementPlus);
+    app.mount('#app');
+</script>
 </body>
 </html>

@@ -33,9 +33,10 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addInterceptor(loginInterceptor)
                 .addPathPatterns("/api/**")
                 .excludePathPatterns(
-                        // 登录注册
+                        // 登录注册与找回密码
                         "/api/user/login",
                         "/api/user/register",
+                        "/api/user/reset-password", // 【核心修复】：在此处放行找回密码接口，免登录即可访问！
                         "/api/upload",
                         "/error",
                         "/images/**",

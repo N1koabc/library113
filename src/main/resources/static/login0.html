@@ -34,13 +34,16 @@
             <div class="circle-bg w-96 h-96 -bottom-32 -right-32 opacity-50"></div>
 
             <div class="relative z-10 flex-grow flex flex-col justify-center">
-                <div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-8 shadow-lg">
-                    <el-icon class="text-3xl text-emerald-600"><component :is="'School'"></component></el-icon>
-                </div>
-                <h1 class="text-4xl font-black mb-4 leading-tight">桂电自修室<br>智能互联系统</h1>
 
+                <div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-8 shadow-lg text-emerald-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-10 h-10">
+                        <path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72l5 2.73 5-2.73v3.72z"/>
+                    </svg>
+                </div>
+
+                <h1 class="text-4xl font-black mb-4 leading-tight">桂电自修室<br>智能互联系统</h1>
                 <p class="text-emerald-50 text-lg font-medium tracking-widest mb-8">
-                    正德厚学 &nbsp; 笃行致新
+                    正德厚学 &nbsp;&nbsp; 笃行致新
                 </p>
             </div>
         </div>
@@ -65,7 +68,7 @@
                 <div>
                     <div class="flex justify-between items-end mb-2">
                         <label class="block text-xs font-bold text-slate-700 uppercase">Password</label>
-                        <el-button v-if="isLogin" link type="primary" class="!text-xs !text-emerald-600 font-bold" @click="forgotDialogVisible = true">忘记密码？</el-button>
+                        <el-button v-if="isLogin" link type="primary" class="!text-xs !text-emerald-600 font-bold" @click="forgotDialogVisible = true">修改密码？</el-button>
                     </div>
                     <el-input v-model="form.password" type="password" show-password placeholder="请输入密码" class="custom-input" prefix-icon="Lock" size="large"></el-input>
                 </div>
@@ -86,17 +89,28 @@
 
     <el-dialog v-model="forgotDialogVisible" title="找回密码" width="400px" align-center append-to-body>
         <el-form :model="forgotForm" label-position="top">
-            <div class="mb-6 text-xs text-slate-600 bg-emerald-50 p-4 rounded-xl border border-emerald-100 flex gap-3">
-                <el-icon class="text-emerald-500 text-lg flex-shrink-0"><component :is="'Warning'"></component></el-icon>
-                <div>为保障账号安全，需核验您的 <b>学号</b> 与系统绑定的 <b>真实姓名</b> 是否一致。</div>
+            <div class="mb-6 text-xs text-slate-600 bg-slate-50 p-4 rounded-xl border border-slate-100 flex gap-3">
+                <el-icon class="text-emerald-500 text-lg flex-shrink-0"><component :is="'ChatDotSquare'"></component></el-icon>
+                <div>请进行手机验证码安全核验以重置您的密码。</div>
             </div>
 
             <el-form-item label="您的学号">
                 <el-input v-model="forgotForm.username" placeholder="请输入注册时的学号" prefix-icon="User" size="large" class="custom-input"></el-input>
             </el-form-item>
-            <el-form-item label="真实姓名 (身份核验)">
-                <el-input v-model="forgotForm.realName" placeholder="请输入绑定的真实姓名" prefix-icon="Postcard" size="large" class="custom-input"></el-input>
+
+            <el-form-item label="绑定的手机号码">
+                <el-input v-model="forgotForm.phone" placeholder="请输入11位手机号码" prefix-icon="Iphone" size="large" class="custom-input"></el-input>
             </el-form-item>
+
+            <el-form-item label="短信验证码">
+                <div class="flex gap-3 w-full">
+                    <el-input v-model="forgotForm.verifyCode" placeholder="6位验证码" prefix-icon="Key" size="large" class="custom-input flex-grow"></el-input>
+                    <el-button type="primary" plain size="large" class="!rounded-xl" :disabled="countdown > 0" @click="sendMockCode" style="width: 110px;">
+                        {{ countdown > 0 ? countdown + 's 后重发' : '获取验证码' }}
+                    </el-button>
+                </div>
+            </el-form-item>
+
             <el-form-item label="设置新密码">
                 <el-input v-model="forgotForm.newPassword" type="password" show-password placeholder="请输入新的密码" prefix-icon="Lock" size="large" class="custom-input"></el-input>
             </el-form-item>
@@ -122,7 +136,8 @@
 
             const forgotDialogVisible = ref(false);
             const resetLoading = ref(false);
-            const forgotForm = ref({ username: '', realName: '', newPassword: '' });
+            const forgotForm = ref({ username: '', phone: '', verifyCode: '', newPassword: '' });
+            const countdown = ref(0);
 
             const toggleMode = () => {
                 isLogin.value = !isLogin.value;
@@ -136,7 +151,6 @@
                 if (!isLogin.value && !form.value.realName) {
                     return ElementPlus.ElMessage.warning('注册需要填写真实姓名');
                 }
-
                 loading.value = true;
                 try {
                     if (isLogin.value) {
@@ -156,18 +170,39 @@
                 }
             };
 
+            const sendMockCode = () => {
+                if (!forgotForm.value.phone || forgotForm.value.phone.length !== 11) {
+                    return ElementPlus.ElMessage.warning('请输入正确的11位手机号码');
+                }
+
+                ElementPlus.ElMessage({
+                    message: '短信验证码已发送，测试环境请使用：123456',
+                    type: 'success',
+                    duration: 5000
+                });
+
+                countdown.value = 60;
+                const timer = setInterval(() => {
+                    countdown.value--;
+                    if (countdown.value <= 0) {
+                        clearInterval(timer);
+                    }
+                }, 1000);
+            };
+
             const submitResetPassword = async () => {
-                if (!forgotForm.value.username || !forgotForm.value.realName || !forgotForm.value.newPassword) {
-                    return ElementPlus.ElMessage.warning('请填写完整的核验信息与新密码');
+                if (!forgotForm.value.username || !forgotForm.value.phone || !forgotForm.value.verifyCode || !forgotForm.value.newPassword) {
+                    return ElementPlus.ElMessage.warning('请填写完整信息');
                 }
                 resetLoading.value = true;
                 try {
                     const res = await axios.post('/api/user/reset-password', forgotForm.value);
                     ElementPlus.ElMessage.success(res.data);
                     forgotDialogVisible.value = false;
-                    forgotForm.value = { username: '', realName: '', newPassword: '' };
+                    forgotForm.value = { username: '', phone: '', verifyCode: '', newPassword: '' };
+                    countdown.value = 0;
                 } catch (e) {
-                    ElementPlus.ElMessage.error(e.response?.data || '重置失败，请检查核验信息');
+                    ElementPlus.ElMessage.error(e.response?.data || '重置失败，请检查信息');
                 } finally {
                     resetLoading.value = false;
                 }
@@ -175,7 +210,8 @@
 
             return {
                 isLogin, loading, form, toggleMode, handleAuth,
-                forgotDialogVisible, resetLoading, forgotForm, submitResetPassword
+                forgotDialogVisible, resetLoading, forgotForm, submitResetPassword,
+                countdown, sendMockCode
             };
         }
     });
@@ -183,7 +219,6 @@
     for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
         app.component(key, component);
     }
-
     app.use(ElementPlus);
     app.mount('#app');
 </script>
