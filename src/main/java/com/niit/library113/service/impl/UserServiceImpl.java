@@ -79,10 +79,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if(StringUtils.hasText(user.getCollege())) old.setCollege(user.getCollege());
         if(StringUtils.hasText(user.getMajor())) old.setMajor(user.getMajor());
 
+        // 【新增】更新手机号码
+        if(StringUtils.hasText(user.getPhone())) old.setPhone(user.getPhone());
+
         return this.updateById(old);
     }
 
-    // 【新增】后端核心鉴权逻辑
+    // 后端核心鉴权逻辑
     @Override
     public boolean isAdmin(Long userId) {
         if (userId == null) return false;

@@ -31,7 +31,7 @@ CREATE TABLE `feedback` (
   `reply` text COMMENT '管理员回复',
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -40,7 +40,7 @@ CREATE TABLE `feedback` (
 
 LOCK TABLES `feedback` WRITE;
 /*!40000 ALTER TABLE `feedback` DISABLE KEYS */;
-INSERT INTO `feedback` VALUES (1,1031,'功能建议','666',1,'ojbk','2026-02-19 11:25:09');
+INSERT INTO `feedback` VALUES (1,1031,'功能建议','666',1,'ojbk','2026-02-19 11:25:09'),(2,1033,'场馆投诉','还hi打赏',1,'ojbk\n','2026-02-20 13:29:16'),(3,1031,'功能建议','哈哈',0,NULL,'2026-02-21 18:17:11');
 /*!40000 ALTER TABLE `feedback` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -53,4 +53,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-02-19 15:41:12
+-- Dump completed on 2026-02-21 20:30:45

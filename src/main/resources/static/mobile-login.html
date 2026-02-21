@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>登录 - 桂电自修系统移动版</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/vue@3.3.4/dist/vue.global.prod.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/element-plus@2.4.2/dist/index.css">
+  <script src="https://cdn.jsdelivr.net/npm/element-plus@2.4.2/dist/index.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@element-plus/icons-vue@2.3.1/dist/index.iife.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios@1.6.2/dist/axios.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #f8fafc; margin: 0; padding: 0; min-height: 100vh; -webkit-tap-highlight-color: transparent; }
+    [v-cloak] { display: none !important; }
+
+    .custom-input .el-input__wrapper { box-shadow: none !important; background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 16px; padding: 10px 16px; transition: all 0.3s; }
+    .custom-input .el-input__wrapper.is-focus { border-color: #10b981; background: #fff; box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1) !important; }
+    .custom-btn { width: 100%; border-radius: 16px !important; padding: 26px 0 !important; font-size: 16px !important; font-weight: 800 !important; letter-spacing: 2px; transition: all 0.2s active:scale-95 !important; }
+
+    .mobile-dialog { border-radius: 24px 24px 0 0 !important; margin-bottom: 0 !important; position: absolute !important; bottom: 0 !important; width: 100% !important; }
+
+    input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none !important; margin: 0; }
+    input[type='number'] { -moz-appearance: textfield; }
+  </style>
+</head>
+<body>
+<div id="app" v-cloak class="min-h-screen flex flex-col justify-center px-8 relative overflow-hidden">
+
+  <div class="absolute w-64 h-64 bg-emerald-100 rounded-full blur-3xl opacity-50 -top-20 -right-20 pointer-events-none"></div>
+  <div class="absolute w-40 h-40 bg-blue-50 rounded-full blur-2xl opacity-60 bottom-10 -left-10 pointer-events-none"></div>
+
+  <div class="relative z-10 w-full max-w-sm mx-auto">
+    <div class="mb-8 text-center">
+      <div class="w-12 h-12 mx-auto bg-emerald-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-emerald-200 mb-4 cursor-pointer active:scale-95 transition-transform" @click="goPC" title="切换至电脑端登录">
+        <el-icon size="24"><component :is="'School'"></component></el-icon>
+      </div>
+      <h2 class="text-2xl font-black text-slate-800 mb-1 tracking-tight">{{ isLogin ? '欢迎回来' : '注册账号' }}</h2>
+      <p class="text-slate-400 text-xs font-medium">{{ isLogin ? '桂电智能自习室' : '完善信息以完成注册' }}</p>
+    </div>
+
+    <el-form :model="form" @submit.prevent="handleAuth" class="space-y-3">
+      <el-input v-model="form.username" type="tel" placeholder="学号 Student ID" class="custom-input" prefix-icon="User" size="large"></el-input>
+
+      <div v-if="!isLogin" class="animate-fade-in space-y-3">
+        <el-input v-model="form.realName" placeholder="真实姓名 Real Name" class="custom-input" prefix-icon="Postcard" size="large"></el-input>
+        <el-input v-model="form.phone" type="tel" placeholder="手机号码 Phone" class="custom-input" prefix-icon="Iphone" size="large"></el-input>
+        <div class="flex gap-2 w-full">
+          <el-input v-model="form.verifyCode" type="tel" placeholder="验证码 Code" prefix-icon="Key" size="large" class="custom-input flex-grow"></el-input>
+          <el-button type="primary" plain native-type="button" size="large" class="!rounded-xl shrink-0 !w-20 font-bold !px-0" :disabled="regCountdown > 0" @click="sendRegMockCode">
+            {{ regCountdown > 0 ? regCountdown + 's' : '获取' }}
+          </el-button>
+        </div>
+      </div>
+
+      <el-input v-model="form.password" type="password" show-password placeholder="密码 Password" class="custom-input" prefix-icon="Lock" size="large"></el-input>
+
+      <div v-if="isLogin" class="flex justify-end mt-1">
+        <span class="text-[11px] text-emerald-600 font-bold cursor-pointer active:opacity-70" @click="forgotDialogVisible = true">忘记密码？</span>
+      </div>
+
+      <div class="pt-3">
+        <el-button type="primary" native-type="submit" color="#10b981" class="custom-btn shadow-lg shadow-emerald-200" :loading="loading">
+          {{ isLogin ? '立 即 登 录' : '确 认 注 册' }}
+        </el-button>
+      </div>
+    </el-form>
+
+    <div class="mt-6 text-center text-xs text-slate-500 font-medium">
+      {{ isLogin ? '还没有账号？' : '已经有账号了？' }}
+      <span class="text-emerald-600 font-bold cursor-pointer active:opacity-70" @click="toggleMode">
+        {{ isLogin ? '立即注册' : '返回登录' }}
+      </span>
+    </div>
+  </div>
+
+  <el-dialog v-model="forgotDialogVisible" title="找回密码" :width="'100%'" custom-class="mobile-dialog" align-center append-to-body :show-close="false">
+    <template #header="{ close, titleId }">
+      <div class="flex justify-between items-center w-full pb-2 border-b border-slate-50">
+        <h4 :id="titleId" class="font-bold text-base text-slate-800">重置密码</h4>
+        <div class="w-7 h-7 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 cursor-pointer" @click="close">
+          <el-icon><component :is="'Close'"></component></el-icon>
+        </div>
+      </div>
+    </template>
+
+    <el-form :model="forgotForm" @submit.prevent="submitResetPassword" class="mt-2 space-y-3">
+      <div class="mb-4 text-[11px] text-slate-600 bg-emerald-50 p-3 rounded-lg border border-emerald-100 flex gap-2 items-start">
+        <el-icon class="text-emerald-500 text-sm mt-0.5 shrink-0"><component :is="'Warning'"></component></el-icon>
+        <div class="leading-relaxed">进行安全核验以重置您的密码。</div>
+      </div>
+
+      <el-input v-model="forgotForm.username" type="tel" placeholder="注册时的学号" prefix-icon="User" size="large" class="custom-input"></el-input>
+      <el-input v-model="forgotForm.phone" type="tel" placeholder="11位手机号码" prefix-icon="Iphone" size="large" class="custom-input"></el-input>
+
+      <div class="flex gap-2 w-full">
+        <el-input v-model="forgotForm.verifyCode" type="tel" placeholder="6位验证码" prefix-icon="Key" size="large" class="custom-input flex-grow"></el-input>
+        <el-button type="primary" plain native-type="button" size="large" class="!rounded-xl shrink-0 !w-20 font-bold !px-0" :disabled="countdown > 0" @click="sendMockCode">
+          {{ countdown > 0 ? countdown + 's' : '获取' }}
+        </el-button>
+      </div>
+
+      <el-input v-model="forgotForm.newPassword" type="password" show-password placeholder="设置新密码" prefix-icon="Lock" size="large" class="custom-input"></el-input>
+
+      <div class="pt-4 pb-2">
+        <el-button type="primary" native-type="submit" color="#059669" class="w-full !rounded-xl !h-11 font-bold text-sm" :loading="resetLoading">确认重置</el-button>
+      </div>
+    </el-form>
+  </el-dialog>
+</div>
+
+<script>
+  const { createApp, ref } = Vue;
+  axios.defaults.baseURL = 'http://localhost:8080';
+
+  const app = createApp({
+    setup() {
+      const isLogin = ref(true);
+      const loading = ref(false);
+      const form = ref({ username: '', password: '', realName: '', phone: '', verifyCode: '' });
+      const regCountdown = ref(0);
+
+      const forgotDialogVisible = ref(false);
+      const resetLoading = ref(false);
+      const forgotForm = ref({ username: '', phone: '', verifyCode: '', newPassword: '' });
+      const countdown = ref(0);
+
+      const toggleMode = () => {
+        isLogin.value = !isLogin.value;
+        form.value = { username: '', password: '', realName: '', phone: '', verifyCode: '' };
+        regCountdown.value = 0;
+      };
+
+      const sendRegMockCode = () => {
+        if (!form.value.phone || form.value.phone.length !== 11) {
+          return ElementPlus.ElMessage.warning('请输入正确的11位手机号');
+        }
+        ElementPlus.ElMessage({ message: '测试环境验证码：123456', type: 'success', duration: 3000 });
+        regCountdown.value = 60;
+        const timer = setInterval(() => {
+          regCountdown.value--;
+          if (regCountdown.value <= 0) clearInterval(timer);
+        }, 1000);
+      };
+
+      const handleAuth = async () => {
+        if (!form.value.username || !form.value.password) {
+          return ElementPlus.ElMessage.warning('请填写学号和密码');
+        }
+
+        let payload = {
+          username: form.value.username,
+          password: form.value.password
+        };
+
+        if (!isLogin.value) {
+          if(!form.value.realName) return ElementPlus.ElMessage.warning('注册需要填写真实姓名');
+          if(!form.value.phone || form.value.phone.length !== 11) return ElementPlus.ElMessage.warning('请输入正确的11位手机号');
+          if(!form.value.verifyCode) return ElementPlus.ElMessage.warning('请输入短信验证码');
+          if(form.value.verifyCode !== '123456') return ElementPlus.ElMessage.error('验证码错误');
+
+          payload.realName = form.value.realName;
+          payload.phone = form.value.phone;
+        }
+
+        loading.value = true;
+        try {
+          if (isLogin.value) {
+            const res = await axios.post('/api/user/login', payload);
+            ElementPlus.ElMessage.success('登录成功');
+            localStorage.setItem('user', JSON.stringify(res.data));
+
+            setTimeout(() => {
+              window.location.replace('mobile.html');
+            }, 300);
+          } else {
+            await axios.post('/api/user/register', payload);
+            ElementPlus.ElMessage.success('注册成功，请登录');
+            toggleMode();
+          }
+        } catch (e) {
+          ElementPlus.ElMessage.error(e.response?.data || '操作失败');
+        } finally {
+          loading.value = false;
+        }
+      };
+
+      const sendMockCode = () => {
+        if (!forgotForm.value.phone || forgotForm.value.phone.length !== 11) return ElementPlus.ElMessage.warning('请输入正确的11位手机号');
+        ElementPlus.ElMessage({ message: '测试环境验证码：123456', type: 'success', duration: 3000 });
+        countdown.value = 60;
+        const timer = setInterval(() => {
+          countdown.value--;
+          if (countdown.value <= 0) clearInterval(timer);
+        }, 1000);
+      };
+
+      const submitResetPassword = async () => {
+        if (!forgotForm.value.username || !forgotForm.value.phone || !forgotForm.value.verifyCode || !forgotForm.value.newPassword) return ElementPlus.ElMessage.warning('请填写完整信息');
+        resetLoading.value = true;
+        try {
+          const res = await axios.post('/api/user/reset-password', forgotForm.value);
+          ElementPlus.ElMessage.success(res.data);
+          forgotDialogVisible.value = false;
+          forgotForm.value = { username: '', phone: '', verifyCode: '', newPassword: '' };
+          countdown.value = 0;
+        } catch (e) {
+          ElementPlus.ElMessage.error(e.response?.data || '重置失败，请检查');
+        } finally {
+          resetLoading.value = false;
+        }
+      };
+
+      // 去 PC 端页面的方法
+      const goPC = () => {
+        window.location.href = 'login0.html';
+      };
+
+      return {
+        isLogin, loading, form, toggleMode, handleAuth, regCountdown, sendRegMockCode,
+        forgotDialogVisible, resetLoading, forgotForm, submitResetPassword, countdown, sendMockCode, goPC
+      };
+    }
+  });
+
+  for (const [key, component] of Object.entries(ElementPlusIconsVue)) { app.component(key, component); }
+  app.use(ElementPlus); app.mount('#app');
+</script>
+</body>
+</html>

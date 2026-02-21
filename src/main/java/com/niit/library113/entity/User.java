@@ -33,4 +33,9 @@ public class User {
     // 身份标识
     @TableField(exist = false)
     private String role;
+    // ... 其他属性
+    private String phone;
+
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
 }

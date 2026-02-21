@@ -24,6 +24,9 @@
         .custom-input .el-input__wrapper.is-focus { border-color: #10b981; background: #fff; box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1) !important; }
         .custom-btn { width: 100%; border-radius: 12px !important; padding: 24px 0 !important; font-size: 16px !important; font-weight: bold !important; letter-spacing: 1px; transition: all 0.3s !important; }
         .custom-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3) !important; }
+
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none !important; margin: 0; }
+        input[type='number'] { -moz-appearance: textfield; }
     </style>
 </head>
 <body>
@@ -34,8 +37,7 @@
             <div class="circle-bg w-96 h-96 -bottom-32 -right-32 opacity-50"></div>
 
             <div class="relative z-10 flex-grow flex flex-col justify-center">
-
-                <div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-8 shadow-lg text-emerald-600">
+                <div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-8 shadow-lg text-emerald-600 cursor-pointer hover:scale-105 transition-transform" @click="goMobile" title="切换至移动端登录">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-10 h-10">
                         <path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72l5 2.73 5-2.73v3.72z"/>
                     </svg>
@@ -49,36 +51,52 @@
         </div>
 
         <div class="right-panel">
-            <div class="mb-10 text-center md:text-left">
+            <div class="mb-6 text-center md:text-left">
                 <h2 class="text-3xl font-black text-slate-800 mb-2">{{ isLogin ? '欢迎回来 👋' : '注册账号 🚀' }}</h2>
                 <p class="text-slate-500 text-sm">{{ isLogin ? '请输入您的学号和密码登录系统' : '请填写您的真实信息完成注册' }}</p>
             </div>
 
-            <el-form :model="form" @keyup.enter="handleAuth" class="space-y-6">
+            <el-form :model="form" @submit.prevent="handleAuth" class="space-y-4">
                 <div>
                     <label class="block text-xs font-bold text-slate-700 mb-2 uppercase">Student ID</label>
                     <el-input v-model="form.username" placeholder="请输入学号" class="custom-input" prefix-icon="User" size="large"></el-input>
                 </div>
 
+                <div v-if="!isLogin" class="animate-fade-in flex gap-4">
+                    <div class="flex-1">
+                        <label class="block text-xs font-bold text-slate-700 mb-2 uppercase">Real Name</label>
+                        <el-input v-model="form.realName" placeholder="真实姓名" class="custom-input" prefix-icon="Postcard" size="large"></el-input>
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-xs font-bold text-slate-700 mb-2 uppercase">Phone</label>
+                        <el-input v-model="form.phone" type="tel" placeholder="11位手机号码" class="custom-input" prefix-icon="Iphone" size="large"></el-input>
+                    </div>
+                </div>
+
                 <div v-if="!isLogin" class="animate-fade-in">
-                    <label class="block text-xs font-bold text-slate-700 mb-2 uppercase">Real Name</label>
-                    <el-input v-model="form.realName" placeholder="请输入真实姓名" class="custom-input" prefix-icon="Postcard" size="large"></el-input>
+                    <label class="block text-xs font-bold text-slate-700 mb-2 uppercase">Verify Code</label>
+                    <div class="flex gap-3 w-full">
+                        <el-input v-model="form.verifyCode" type="tel" placeholder="6位验证码" prefix-icon="Key" size="large" class="custom-input flex-grow"></el-input>
+                        <el-button type="primary" plain native-type="button" size="large" class="!rounded-xl" :disabled="regCountdown > 0" @click="sendRegMockCode" style="width: 110px;">
+                            {{ regCountdown > 0 ? regCountdown + 's 后重发' : '获取验证码' }}
+                        </el-button>
+                    </div>
                 </div>
 
                 <div>
                     <div class="flex justify-between items-end mb-2">
                         <label class="block text-xs font-bold text-slate-700 uppercase">Password</label>
-                        <el-button v-if="isLogin" link type="primary" class="!text-xs !text-emerald-600 font-bold" @click="forgotDialogVisible = true">修改密码？</el-button>
+                        <el-button v-if="isLogin" link native-type="button" type="primary" class="!text-xs !text-emerald-600 font-bold" @click="forgotDialogVisible = true">修改密码？</el-button>
                     </div>
                     <el-input v-model="form.password" type="password" show-password placeholder="请输入密码" class="custom-input" prefix-icon="Lock" size="large"></el-input>
                 </div>
 
-                <el-button type="primary" color="#10b981" class="custom-btn mt-4" @click="handleAuth" :loading="loading">
+                <el-button type="primary" native-type="submit" color="#10b981" class="custom-btn mt-6" :loading="loading">
                     {{ isLogin ? '立 即 登 录' : '确 认 注 册' }}
                 </el-button>
             </el-form>
 
-            <div class="mt-8 text-center text-sm text-slate-500 font-medium">
+            <div class="mt-6 text-center text-sm text-slate-500 font-medium">
                 {{ isLogin ? '还没有账号？' : '已经有账号了？' }}
                 <span class="text-emerald-600 font-bold cursor-pointer hover:underline" @click="toggleMode">
                         {{ isLogin ? '立即注册' : '返回登录' }}
@@ -88,7 +106,7 @@
     </div>
 
     <el-dialog v-model="forgotDialogVisible" title="找回密码" width="400px" align-center append-to-body>
-        <el-form :model="forgotForm" label-position="top">
+        <el-form :model="forgotForm" @submit.prevent="submitResetPassword" label-position="top">
             <div class="mb-6 text-xs text-slate-600 bg-slate-50 p-4 rounded-xl border border-slate-100 flex gap-3">
                 <el-icon class="text-emerald-500 text-lg flex-shrink-0"><component :is="'ChatDotSquare'"></component></el-icon>
                 <div>请进行手机验证码安全核验以重置您的密码。</div>
@@ -99,13 +117,13 @@
             </el-form-item>
 
             <el-form-item label="绑定的手机号码">
-                <el-input v-model="forgotForm.phone" placeholder="请输入11位手机号码" prefix-icon="Iphone" size="large" class="custom-input"></el-input>
+                <el-input v-model="forgotForm.phone" type="tel" placeholder="请输入11位手机号码" prefix-icon="Iphone" size="large" class="custom-input"></el-input>
             </el-form-item>
 
             <el-form-item label="短信验证码">
                 <div class="flex gap-3 w-full">
-                    <el-input v-model="forgotForm.verifyCode" placeholder="6位验证码" prefix-icon="Key" size="large" class="custom-input flex-grow"></el-input>
-                    <el-button type="primary" plain size="large" class="!rounded-xl" :disabled="countdown > 0" @click="sendMockCode" style="width: 110px;">
+                    <el-input v-model="forgotForm.verifyCode" type="tel" placeholder="6位验证码" prefix-icon="Key" size="large" class="custom-input flex-grow"></el-input>
+                    <el-button type="primary" plain native-type="button" size="large" class="!rounded-xl" :disabled="countdown > 0" @click="sendMockCode" style="width: 110px;">
                         {{ countdown > 0 ? countdown + 's 后重发' : '获取验证码' }}
                     </el-button>
                 </div>
@@ -114,13 +132,12 @@
             <el-form-item label="设置新密码">
                 <el-input v-model="forgotForm.newPassword" type="password" show-password placeholder="请输入新的密码" prefix-icon="Lock" size="large" class="custom-input"></el-input>
             </el-form-item>
-        </el-form>
-        <template #footer>
-            <div class="flex justify-end gap-3">
-                <el-button @click="forgotDialogVisible = false" size="large" class="!rounded-xl">取消</el-button>
-                <el-button type="primary" color="#059669" @click="submitResetPassword" :loading="resetLoading" size="large" class="!rounded-xl font-bold">确认重置</el-button>
+
+            <div class="flex justify-end gap-3 mt-4">
+                <el-button @click="forgotDialogVisible = false" native-type="button" size="large" class="!rounded-xl">取消</el-button>
+                <el-button type="primary" native-type="submit" color="#059669" :loading="resetLoading" size="large" class="!rounded-xl font-bold">确认重置</el-button>
             </div>
-        </template>
+        </el-form>
     </el-dialog>
 </div>
 
@@ -132,7 +149,8 @@
         setup() {
             const isLogin = ref(true);
             const loading = ref(false);
-            const form = ref({ username: '', password: '', realName: '' });
+            const form = ref({ username: '', password: '', realName: '', phone: '', verifyCode: '' });
+            const regCountdown = ref(0);
 
             const forgotDialogVisible = ref(false);
             const resetLoading = ref(false);
@@ -141,25 +159,58 @@
 
             const toggleMode = () => {
                 isLogin.value = !isLogin.value;
-                form.value = { username: '', password: '', realName: '' };
+                form.value = { username: '', password: '', realName: '', phone: '', verifyCode: '' };
+                regCountdown.value = 0;
+            };
+
+            const sendRegMockCode = () => {
+                if (!form.value.phone || form.value.phone.length !== 11) {
+                    return ElementPlus.ElMessage.warning('请输入正确的11位手机号码');
+                }
+                ElementPlus.ElMessage({
+                    message: '短信验证码已发送，测试环境请使用：123456',
+                    type: 'success',
+                    duration: 5000
+                });
+                regCountdown.value = 60;
+                const timer = setInterval(() => {
+                    regCountdown.value--;
+                    if (regCountdown.value <= 0) clearInterval(timer);
+                }, 1000);
             };
 
             const handleAuth = async () => {
                 if (!form.value.username || !form.value.password) {
                     return ElementPlus.ElMessage.warning('请填写学号和密码');
                 }
-                if (!isLogin.value && !form.value.realName) {
-                    return ElementPlus.ElMessage.warning('注册需要填写真实姓名');
+
+                let payload = {
+                    username: form.value.username,
+                    password: form.value.password
+                };
+
+                if (!isLogin.value) {
+                    if(!form.value.realName) return ElementPlus.ElMessage.warning('注册需要填写真实姓名');
+                    if(!form.value.phone || form.value.phone.length !== 11) return ElementPlus.ElMessage.warning('请输入正确的11位手机号码');
+                    if(!form.value.verifyCode) return ElementPlus.ElMessage.warning('请输入短信验证码');
+                    if(form.value.verifyCode !== '123456') return ElementPlus.ElMessage.error('短信验证码错误');
+
+                    payload.realName = form.value.realName;
+                    payload.phone = form.value.phone;
                 }
+
                 loading.value = true;
                 try {
                     if (isLogin.value) {
-                        const res = await axios.post('/api/user/login', form.value);
+                        const res = await axios.post('/api/user/login', payload);
                         ElementPlus.ElMessage.success('登录成功');
                         localStorage.setItem('user', JSON.stringify(res.data));
-                        window.location.href = 'index.html';
+
+                        setTimeout(() => {
+                            window.location.replace('index.html');
+                        }, 300);
                     } else {
-                        await axios.post('/api/user/register', form.value);
+                        await axios.post('/api/user/register', payload);
                         ElementPlus.ElMessage.success('注册成功，请登录');
                         toggleMode();
                     }
@@ -174,19 +225,15 @@
                 if (!forgotForm.value.phone || forgotForm.value.phone.length !== 11) {
                     return ElementPlus.ElMessage.warning('请输入正确的11位手机号码');
                 }
-
                 ElementPlus.ElMessage({
                     message: '短信验证码已发送，测试环境请使用：123456',
                     type: 'success',
                     duration: 5000
                 });
-
                 countdown.value = 60;
                 const timer = setInterval(() => {
                     countdown.value--;
-                    if (countdown.value <= 0) {
-                        clearInterval(timer);
-                    }
+                    if (countdown.value <= 0) clearInterval(timer);
                 }, 1000);
             };
 
@@ -208,10 +255,16 @@
                 }
             };
 
+            // 去移动端页面的方法
+            const goMobile = () => {
+                window.location.href = 'mobile-login.html';
+            };
+
             return {
                 isLogin, loading, form, toggleMode, handleAuth,
+                regCountdown, sendRegMockCode,
                 forgotDialogVisible, resetLoading, forgotForm, submitResetPassword,
-                countdown, sendMockCode
+                countdown, sendMockCode, goMobile
             };
         }
     });
