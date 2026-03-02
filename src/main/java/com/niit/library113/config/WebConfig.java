@@ -41,6 +41,8 @@ public class WebConfig implements WebMvcConfigurer {
                         "/error",
                         "/images/**",
 
+                        "/api/ai/**",
+
                         // 【新增】放行看板公共数据 (修复数据不显示的问题)
                         "/api/notices/**",       // 公告
                         "/api/seats/list",       // 座位列表

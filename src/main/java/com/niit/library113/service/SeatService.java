@@ -17,6 +17,8 @@ public interface SeatService extends IService<Seat> {
     List<List<Object>> getHeatmapData();
     List<Integer> getFloorSaturation();
     List<Map<String, Object>> getLatestLogs();
+    // 【本次新增】AI 智能找座接口
+    List<Seat> findSmartSeats(com.niit.library113.dto.AiSeatParams params);
     Map<String, Object> getLibraryOccupancy();
     void setSeatMaintenance(Long seatId, boolean isMaintenance);
     void closeLibrary();

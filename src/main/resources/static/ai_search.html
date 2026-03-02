@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>AI 智能找座 - 极简版</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <style>
+        body { background-color: #f9fafc; margin: 0; font-family: "Helvetica Neue",Arial,sans-serif; }
+        .container { max-width: 800px; margin: 50px auto; background: #fff; padding: 40px; border-radius: 8px; box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1); }
+        .header { margin-bottom: 30px; border-left: 5px solid #409EFF; padding-left: 15px;}
+        .title { font-size: 24px; color: #303133; margin: 0; }
+        .search-box { margin: 30px 0; }
+        .intent-display { background: #f0f7ff; border: 1px solid #d1e9ff; padding: 15px; border-radius: 4px; margin-bottom: 20px; font-size: 14px; color: #409EFF; }
+        .tag { background: #409EFF; color: #fff; padding: 2px 8px; border-radius: 3px; margin: 0 5px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <div class="container">
+        <div class="header">
+            <h1 class="title">AI 智能找座</h1>
+            <p style="color: #909399;">输入您的真实需求，由 AI 为您筛选座位</p>
+        </div>
+
+        <div class="search-box">
+            <el-input
+                    placeholder="例如：我想去三楼带电脑的地方"
+                    v-model="userInput"
+                    @keyup.enter.native="handleSearch"
+                    clearable>
+                <el-button slot="append" type="primary" :loading="loading" @click="handleSearch">智能匹配</el-button>
+            </el-input>
+        </div>
+
+        <div v-if="parsedIntent && !loading" class="intent-display">
+            <i class="el-icon-cpu"></i> AI 识别结果：
+            <span v-if="parsedIntent.floor" class="tag">{{ parsedIntent.floor }}层</span>
+            <span v-if="parsedIntent.has_socket" class="tag">有插座</span>
+            <span v-if="parsedIntent.has_window" class="tag">靠窗</span>
+        </div>
+
+        <div class="result-table">
+            <el-table :data="seatList" stripe v-loading="loading">
+                <el-table-column prop="seatNumber" label="座位号"></el-table-column>
+                <el-table-column label="详细位置">
+                    <template slot-scope="scope">{{ scope.row.floor }}楼 - {{ scope.row.zone }}区</template>
+                </el-table-column>
+                <el-table-column label="设施">
+                    <template slot-scope="scope">
+                        <i v-if="scope.row.hasSocket" class="el-icon-connection" style="color:#409EFF;margin-right:10px" title="有插座"></i>
+                        <i v-if="scope.row.isWindow" class="el-icon-sunny" style="color:#E6A23C" title="靠窗"></i>
+                    </template>
+                </el-table-column>
+                <el-table-column label="操作" width="100">
+                    <template slot-scope="scope">
+                        <el-button type="text" @click="reserve(scope.row)">预约</el-button>
+                    </template>
+                </el-table-column>
+            </el-table>
+            <el-empty v-if="!loading && hasSearched && seatList.length === 0" description="未找到匹配座位"></el-empty>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/vue@2.6.14/dist/vue.js"></script>
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+<script>
+    new Vue({
+        el: '#app',
+        data() {
+            return {
+                userInput: '',
+                loading: false,
+                hasSearched: false,
+                parsedIntent: null,
+                seatList: []
+            }
+        },
+        methods: {
+            async handleSearch() {
+                if (!this.userInput.trim()) return;
+                this.loading = true;
+                this.hasSearched = true;
+
+                try {
+                    // 【关键修正点】：后端是 @RequestBody String，所以这里直接传字符串，并指定 Content-Type
+                    const res = await axios({
+                        method: 'post',
+                        url: 'http://localhost:8080/api/ai/search-smart',
+                        data: this.userInput,
+                        headers: { 'Content-Type': 'text/plain' }
+                    });
+
+                    this.parsedIntent = res.data.parsedIntent;
+                    this.seatList = res.data.seatList;
+                } catch (error) {
+                    // 增加详细报错提示
+                    let msg = "连接失败：";
+                    if (error.response) {
+                        msg += `后端返回状态码 ${error.response.status}`;
+                    } else {
+                        msg += "后端未启动或网络不通";
+                    }
+                    this.$message.error(msg);
+                } finally {
+                    this.loading = false;
+                }
+            },
+            reserve(seat) {
+                this.$message.success("预约请求已发送");
+            }
+        }
+    })
+</script>
+</body>
+</html>

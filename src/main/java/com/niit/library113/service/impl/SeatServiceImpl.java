@@ -1,8 +1,10 @@
 package com.niit.library113.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.niit.library113.dto.AiSeatParams;
 import com.niit.library113.dto.ReservationRequest;
 import com.niit.library113.entity.CreditLog;
 import com.niit.library113.entity.Reservation;
@@ -18,7 +20,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -416,5 +418,25 @@ public class SeatServiceImpl extends ServiceImpl<SeatMapper, Seat> implements Se
             updateTarget.in("id", targetSeatIds).eq("status", 2).set("status", 0);
             this.update(updateTarget);
         }
+    }
+    @Override
+    public List<Seat> findSmartSeats(AiSeatParams params) {
+        LambdaQueryWrapper<Seat> wrapper = new LambdaQueryWrapper<>();
+
+        // 1. 基础条件：座位首先得是空闲的 (状态 0)
+        wrapper.eq(Seat::getStatus, 0);
+
+        // 2. 动态拼接 AI 提取的条件
+        // 如果 AI 提到了楼层
+        wrapper.eq(params.getFloor() != null, Seat::getFloor, params.getFloor());
+
+        // 如果 AI 推理出需要插座
+        wrapper.eq(Boolean.TRUE.equals(params.getHas_socket()), Seat::getHasSocket, true);
+
+        // 如果 AI 提取出需要靠窗
+        wrapper.eq(Boolean.TRUE.equals(params.getHas_window()), Seat::getIsWindow, true);
+
+        // 3. 执行查询并返回给 Controller
+        return this.list(wrapper);
     }
 }
